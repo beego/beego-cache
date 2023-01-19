@@ -18,12 +18,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	cache "github.com/beego/beego-cache/v2"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	cache "github.com/beego/beego-cache/v2"
 
 	_ "github.com/bradfitz/gomemcache/memcache"
 	"github.com/stretchr/testify/assert"

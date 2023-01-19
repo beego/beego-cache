@@ -18,11 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	cache "github.com/beego/beego-cache/v2"
 	berror "github.com/beego/beego-error/v2"
 	"github.com/bradfitz/gomemcache/memcache"
-	"strings"
-	"time"
 )
 
 // Cache Memcache adapter.

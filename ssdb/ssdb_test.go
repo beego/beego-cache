@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	cache "github.com/beego/beego-cache/v2"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	cache "github.com/beego/beego-cache/v2"
 
 	berror "github.com/beego/beego-error/v2"
 	"github.com/stretchr/testify/assert"
