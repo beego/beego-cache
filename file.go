@@ -57,11 +57,59 @@ type FileCache struct {
 	EmbedExpiry    int
 }
 
+type FileCacheOptions func(c *FileCache)
+
+// FileCacheWithCachePath configures cachePath for FileCache
+func FileCacheWithCachePath(cachePath string) FileCacheOptions {
+	return func(c *FileCache) {
+		c.CachePath = cachePath
+	}
+}
+
+// FileCacheWithFileSuffix configures fileSuffix for FileCache
+func FileCacheWithFileSuffix(fileSuffix string) FileCacheOptions {
+	return func(c *FileCache) {
+		c.FileSuffix = fileSuffix
+	}
+}
+
+// FileCacheWithDirectoryLevel configures directoryLevel for FileCache
+func FileCacheWithDirectoryLevel(directoryLevel int) FileCacheOptions {
+	return func(c *FileCache) {
+		c.DirectoryLevel = directoryLevel
+	}
+}
+
+// FileCacheWithEmbedExpiry configures fileCacheEmbedExpiry for FileCache
+func FileCacheWithEmbedExpiry(fileCacheEmbedExpiry int) FileCacheOptions {
+	return func(c *FileCache) {
+		c.EmbedExpiry = fileCacheEmbedExpiry
+	}
+}
+
 // NewFileCache creates a new file cache with no config.
 // The level and expiry need to be set in the method StartAndGC as config string.
 func NewFileCache() Cache {
 	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
 	return &FileCache{}
+}
+
+// NewFileCacheV2 creates a new file cache with no config.
+// The level and expiry need to be set in the method StartAndGC as config string.
+func NewFileCacheV2(opts ...FileCacheOptions) Cache {
+	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
+	res := &FileCache{
+		CachePath:      FileCachePath,
+		FileSuffix:     FileCacheFileSuffix,
+		DirectoryLevel: FileCacheDirectoryLevel,
+	}
+	res.EmbedExpiry, _ = strconv.Atoi(
+		strconv.FormatInt(int64(FileCacheEmbedExpiry.Seconds()), 10))
+
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // StartAndGC starts gc for file cache.

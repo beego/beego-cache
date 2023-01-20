@@ -20,9 +20,29 @@ type Cache struct {
 	conninfo []string
 }
 
+type CacheOptions func(c *Cache)
+
+// CacheWithConninfo configures conninfo for ssdb
+func CacheWithConninfo(conninfo []string) CacheOptions {
+	return func(c *Cache) {
+		c.conninfo = conninfo
+	}
+}
+
 // NewSsdbCache creates new ssdb adapter.
 func NewSsdbCache() cache.Cache {
 	return &Cache{}
+}
+
+// NewSsdbCacheV2 creates new ssdb adapter.
+func NewSsdbCacheV2(conn *ssdb.Client, opts ...CacheOptions) cache.Cache {
+	res := &Cache{
+		conn: conn,
+	}
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // Get gets a key's value from memcache.

@@ -44,9 +44,74 @@ type Cache struct {
 	timeout time.Duration
 }
 
+type CacheOptions func(c *Cache)
+
+// CacheWithConninfo configures conninfo for redis
+func CacheWithConninfo(conninfo string) CacheOptions {
+	return func(c *Cache) {
+		c.conninfo = conninfo
+	}
+}
+
+// CacheWithDbNum configures dbNum for redis
+func CacheWithDbNum(dbNum int) CacheOptions {
+	return func(c *Cache) {
+		c.dbNum = dbNum
+	}
+}
+
+// CacheWithKey configures conninfo for redis
+func CacheWithKey(key string) CacheOptions {
+	return func(c *Cache) {
+		c.key = key
+	}
+}
+
+// CacheWithPwd configures conninfo for redis
+func CacheWithPwd(password string) CacheOptions {
+	return func(c *Cache) {
+		c.password = password
+	}
+}
+
+// CacheWithMaxIdle configures conninfo for redis
+func CacheWithMaxIdle(maxIdle int) CacheOptions {
+	return func(c *Cache) {
+		c.maxIdle = maxIdle
+	}
+}
+
+// CacheWithTimeout configures conninfo for redis
+func CacheWithTimeout(timeout time.Duration) CacheOptions {
+	return func(c *Cache) {
+		c.timeout = timeout
+	}
+}
+
 // NewRedisCache creates a new redis cache with default collection name.
 func NewRedisCache() cache.Cache {
 	return &Cache{key: DefaultKey}
+}
+
+// NewRedisCacheV2 creates a new redis cache with default collection name.
+func NewRedisCacheV2(pool *redis.Pool, opts ...CacheOptions) cache.Cache {
+	if pool.MaxIdle == 0 {
+		pool.MaxIdle = 3
+	}
+	if pool.IdleTimeout == 0 {
+		pool.IdleTimeout = 180 * time.Second
+	}
+	res := &Cache{
+		p:   pool,
+		key: DefaultKey,
+		//maxIdle: pool.MaxIdle,
+		//timeout: pool.IdleTimeout,
+	}
+
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // Execute the redis commands. args[0] must be the key name

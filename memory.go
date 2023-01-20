@@ -58,6 +58,15 @@ func NewMemoryCache() Cache {
 	return &cache
 }
 
+// NewMemoryCacheV2 returns a new MemoryCache.
+func NewMemoryCacheV2(duration time.Duration, interval int) Cache {
+	return &MemoryCache{
+		dur:   duration,
+		Every: interval,
+		items: make(map[string]*MemoryItem),
+	}
+}
+
 // Get returns cache from memory.
 // If non-existent or expired, return nil.
 func (bc *MemoryCache) Get(ctx context.Context, key string) (interface{}, error) {

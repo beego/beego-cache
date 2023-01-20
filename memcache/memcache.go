@@ -32,9 +32,29 @@ type Cache struct {
 	conninfo []string
 }
 
+type CacheOptions func(c *Cache)
+
+// CacheWithConninfo configures conninfo for memcache
+func CacheWithConninfo(conninfo []string) CacheOptions {
+	return func(c *Cache) {
+		c.conninfo = conninfo
+	}
+}
+
 // NewMemCache creates a new memcache adapter.
 func NewMemCache() cache.Cache {
 	return &Cache{}
+}
+
+// NewMemCacheV2 creates new memcache adapter.
+func NewMemCacheV2(conn *memcache.Client, opts ...CacheOptions) cache.Cache {
+	res := &Cache{
+		conn: conn,
+	}
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // Get get value from memcache.

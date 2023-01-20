@@ -17,9 +17,7 @@ package redis
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-	"strings"
+	berror "github.com/beego/beego-error/v2"
 	"testing"
 	"time"
 
@@ -40,22 +38,53 @@ func (s *Suite) SetupSuite() {
 	t := s.T()
 	maxTryCnt := 10
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = s.dsn
+	//config := fmt.Sprintf(`{"conn": "%s"}`, s.dsn)
+	//bm, err := cache.NewCache(s.driver, config)
+	//for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
+	//	log.Printf("redis 连接异常...")
+	//	time.Sleep(time.Second)
+	//
+	//	bm, err = cache.NewCache(s.driver, config)
+	//	maxTryCnt--
+	//}
+
+	dialFunc := func() (c redis.Conn, err error) {
+		c, err = redis.Dial("tcp", s.dsn)
+		if err != nil {
+			return nil, berror.Wrapf(err, cache.DialFailed,
+				"could not dial to remote %s server: %s ", s.driver, s.dsn)
+		}
+
+		_, selecterr := c.Do("SELECT", 0)
+		if selecterr != nil {
+			_ = c.Close()
+			return nil, selecterr
+		}
+		return
 	}
 
-	config := fmt.Sprintf(`{"conn": "%s"}`, redisAddr)
+	// initialize a new pool
+	pool := &redis.Pool{Dial: dialFunc}
+	c := pool.Get()
+	defer func() {
+		_ = c.Close()
+	}()
 
-	bm, err := cache.NewCache(s.driver, config)
-
-	for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
-		log.Printf("redis 连接异常...")
-		time.Sleep(time.Second)
-
-		bm, err = cache.NewCache(s.driver, config)
+	// test connection
+	err := c.Err()
+	for err != nil && maxTryCnt > 0 {
+		c := pool.Get()
+		err = c.Err()
 		maxTryCnt--
 	}
+	if err != nil {
+		t.Fatal(berror.Wrapf(
+			err, cache.InvalidConnection,
+			"can not connect to remote redis server, please check the connection info and network state: %s",
+			s.dsn))
+	}
+
+	bm := NewRedisCacheV2(pool)
 
 	if err != nil {
 		t.Fatal(err)
