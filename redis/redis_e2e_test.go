@@ -16,7 +16,6 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -25,7 +24,6 @@ import (
 	"time"
 
 	cache "github.com/beego/beego-cache/v2"
-	berror "github.com/beego/beego-error/v2"
 	"github.com/gomodule/redigo/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -70,12 +68,12 @@ type RedisCompositionTestSuite struct {
 	Suite
 }
 
-func (c *RedisCompositionTestSuite) TearDownTest() {
+func (s *RedisCompositionTestSuite) TearDownTest() {
 	// test clear all
-	assert.Nil(c.T(), c.cache.ClearAll(context.Background()))
+	assert.Nil(s.T(), s.cache.ClearAll(context.Background()))
 }
 
-func (c *RedisCompositionTestSuite) TestRedisCacheGet() {
+func (s *RedisCompositionTestSuite) TestRedisCacheGet() {
 	testCases := []struct {
 		name            string
 		key             string
@@ -101,24 +99,24 @@ func (c *RedisCompositionTestSuite) TestRedisCacheGet() {
 		},
 	}
 	for _, tc := range testCases {
-		c.T().Run(tc.name, func(t *testing.T) {
-			err := c.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+		s.T().Run(tc.name, func(t *testing.T) {
+			err := s.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
 			assert.Nil(t, err)
 			time.Sleep(2 * time.Second)
 
-			val, err := c.cache.Get(context.Background(), tc.key)
-			if err != nil {
-				fmt.Println(err.Error())
-				assert.EqualError(t, tc.wantErr, err.Error())
-				return
-			}
+			val, err := s.cache.Get(context.Background(), tc.key)
+			//if err != nil {
+			//	assert.EqualError(t, ts.wantErr, err.Error())
+			//	return
+			//}
+			assert.Nil(t, err)
 			vs, _ := redis.String(val, err)
 			assert.Equal(t, tc.value, vs)
 		})
 	}
 }
 
-func (c *RedisCompositionTestSuite) TestRedisCacheIsExist() {
+func (s *RedisCompositionTestSuite) TestRedisCacheIsExist() {
 	testCases := []struct {
 		name            string
 		key             string
@@ -141,37 +139,25 @@ func (c *RedisCompositionTestSuite) TestRedisCacheIsExist() {
 		},
 	}
 	for _, tc := range testCases {
-		c.T().Run(tc.name, func(t *testing.T) {
-			err := c.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+		s.T().Run(tc.name, func(t *testing.T) {
+			err := s.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
 			assert.Nil(t, err)
 
 			time.Sleep(2 * time.Second)
 
-			res, _ := c.cache.IsExist(context.Background(), tc.key)
+			res, _ := s.cache.IsExist(context.Background(), tc.key)
 			assert.Equal(t, res, tc.isExist)
 		})
 	}
 }
 
-func (c *RedisCompositionTestSuite) TestRedisCacheDelete() {
+func (s *RedisCompositionTestSuite) TestRedisCacheDelete() {
 	testCases := []struct {
 		name            string
 		key             string
 		value           string
 		timeoutDuration time.Duration
-		wantErr         error
 	}{
-		{
-			name:  "delete return err",
-			key:   "key0",
-			value: "value0",
-			wantErr: func() error {
-				err := errors.New("the key not exist")
-				return berror.Wrapf(err, cache.RedisCacheCurdFailed,
-					"could not execute this command: %s", "DEL")
-			}(),
-			timeoutDuration: 1 * time.Second,
-		},
 		{
 			name:            "delete val",
 			key:             "key1",
@@ -180,22 +166,17 @@ func (c *RedisCompositionTestSuite) TestRedisCacheDelete() {
 		},
 	}
 	for _, tc := range testCases {
-		c.T().Run(tc.name, func(t *testing.T) {
-			err := c.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+		s.T().Run(tc.name, func(t *testing.T) {
+			err := s.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
 			assert.Nil(t, err)
 
-			time.Sleep(2 * time.Second)
-
-			err = c.cache.Delete(context.Background(), tc.key)
-			if err != nil {
-				assert.EqualError(t, tc.wantErr, err.Error())
-				return
-			}
+			err = s.cache.Delete(context.Background(), tc.key)
+			assert.Nil(t, err)
 		})
 	}
 }
 
-func (c *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
+func (s *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
 	testCases := []struct {
 		name            string
 		keys            []string
@@ -222,16 +203,16 @@ func (c *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
 		},
 	}
 	for _, tc := range testCases {
-		c.T().Run(tc.name, func(t *testing.T) {
+		s.T().Run(tc.name, func(t *testing.T) {
 			for idx, key := range tc.keys {
 				value := tc.values[idx]
-				err := c.cache.Put(context.Background(), key, value, tc.timeoutDuration)
+				err := s.cache.Put(context.Background(), key, value, tc.timeoutDuration)
 				assert.Nil(t, err)
 			}
 
 			time.Sleep(2 * time.Second)
 
-			vals, err := c.cache.GetMulti(context.Background(), tc.keys)
+			vals, err := s.cache.GetMulti(context.Background(), tc.keys)
 			assert.Nil(t, err)
 			values := make([]string, 0, len(tc.values))
 			for _, v := range vals {
@@ -243,26 +224,68 @@ func (c *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
 	}
 }
 
-func (c *RedisCompositionTestSuite) TestCacheScan() {
-	t := c.T()
+func (s *RedisCompositionTestSuite) TestRedisCacheIncrAndDecr() {
+	testCases := []struct {
+		name            string
+		key             string
+		value           int
+		timeoutDuration time.Duration
+		wantErr         error
+	}{
+		{
+			name:            "incr and decr",
+			key:             "key",
+			value:           1,
+			timeoutDuration: 5 * time.Second,
+		},
+	}
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			err := s.cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+			assert.Nil(t, err)
+
+			val, err := s.cache.Get(context.Background(), tc.key)
+			assert.Nil(t, err)
+			v1, _ := redis.Int(val, err)
+			assert.Equal(t, tc.value, v1)
+
+			assert.Nil(t, s.cache.Incr(context.Background(), tc.key))
+
+			val, err = s.cache.Get(context.Background(), tc.key)
+			assert.Nil(t, err)
+			v2, _ := redis.Int(val, err)
+			assert.Equal(t, v1+1, v2)
+
+			assert.Nil(t, s.cache.Decr(context.Background(), tc.key))
+
+			val, err = s.cache.Get(context.Background(), tc.key)
+			assert.Nil(t, err)
+			v3, _ := redis.Int(val, err)
+			assert.Equal(t, tc.value, v3)
+		})
+	}
+}
+
+func (s *RedisCompositionTestSuite) TestCacheScan() {
+	t := s.T()
 	timeoutDuration := 10 * time.Second
 
 	// insert all
 	for i := 0; i < 100; i++ {
-		assert.Nil(t, c.cache.Put(context.Background(), fmt.Sprintf("astaxie%d", i), fmt.Sprintf("author%d", i), timeoutDuration))
+		assert.Nil(t, s.cache.Put(context.Background(), fmt.Sprintf("astaxie%d", i), fmt.Sprintf("author%d", i), timeoutDuration))
 	}
 	time.Sleep(time.Second)
 	// scan all for the first time
-	keys, err := c.cache.(*Cache).Scan(DefaultKey + ":*")
+	keys, err := s.cache.(*Cache).Scan(DefaultKey + ":*")
 	assert.Nil(t, err)
 
 	assert.Equal(t, 100, len(keys), "scan all error")
 
 	// clear all
-	assert.Nil(t, c.cache.ClearAll(context.Background()))
+	assert.Nil(t, s.cache.ClearAll(context.Background()))
 
 	// scan all for the second time
-	keys, err = c.cache.(*Cache).Scan(DefaultKey + ":*")
+	keys, err = s.cache.(*Cache).Scan(DefaultKey + ":*")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(keys))
 }
