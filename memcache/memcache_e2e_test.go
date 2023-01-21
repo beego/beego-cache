@@ -16,13 +16,12 @@ package memcache
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/bradfitz/gomemcache/memcache"
 
 	cache "github.com/beego/beego-cache/v2"
 	"github.com/stretchr/testify/assert"
@@ -37,29 +36,41 @@ type Suite struct {
 }
 
 func (s *Suite) SetupSuite() {
+	// t := s.T()
+	// maxTryCnt := 10
+
+	//config := fmt.Sprintf(`{"conn": "%s"}`, s.dsn)
+	//bm, err := cache.NewCache(s.driver, config)
+	//
+	//for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
+	//	log.Printf("redis 连接异常...")
+	//	time.Sleep(time.Second)
+	//
+	//	bm, err = cache.NewCache(s.driver, config)
+	//	maxTryCnt--
+	//}
+	//
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+
 	t := s.T()
 	maxTryCnt := 10
+	pool := memcache.New(s.dsn)
 
-	redisAddr := os.Getenv("MEMCACHE_ADDR")
-	if redisAddr == "" {
-		redisAddr = s.dsn
-	}
-
-	config := fmt.Sprintf(`{"conn": "%s"}`, redisAddr)
-
-	bm, err := cache.NewCache(s.driver, config)
-
-	for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
-		log.Printf("redis 连接异常...")
-		time.Sleep(time.Second)
-
-		bm, err = cache.NewCache(s.driver, config)
+	// test connection
+	err := pool.Ping()
+	for err != nil && maxTryCnt > 0 {
+		log.Printf("memcache connection exception...")
+		err = pool.Ping()
 		maxTryCnt--
 	}
-
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	bm := NewMemCacheV2(pool)
+
 	s.cache = bm
 
 }

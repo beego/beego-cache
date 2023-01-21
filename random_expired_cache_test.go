@@ -25,16 +25,15 @@ import (
 )
 
 func TestRandomExpireCache(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":20}`)
-	assert.Nil(t, err)
 
+	bm := NewMemoryCacheV2(20)
 	cache := NewRandomExpireCache(bm)
 	// should not be nil
 	assert.NotNil(t, cache.(*RandomExpireCache).offset)
 
 	timeoutDuration := 3 * time.Second
 
-	if err = cache.Put(context.Background(), "Leon Ding", 22, timeoutDuration); err != nil {
+	if err := cache.Put(context.Background(), "Leon Ding", 22, timeoutDuration); err != nil {
 		t.Error("set Error", err)
 	}
 
@@ -77,7 +76,7 @@ func TestRandomExpireCache(t *testing.T) {
 	assert.Equal(t, "author", vv[0])
 	assert.Equal(t, "author1", vv[1])
 
-	vv, err = cache.GetMulti(context.Background(), []string{"astaxie0", "astaxie1"})
+	vv, err := cache.GetMulti(context.Background(), []string{"astaxie0", "astaxie1"})
 	assert.Equal(t, 2, len(vv))
 	assert.Nil(t, vv[0])
 	assert.Equal(t, "author1", vv[1])
@@ -87,9 +86,7 @@ func TestRandomExpireCache(t *testing.T) {
 }
 
 func TestWithOffsetFunc(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":20}`)
-	assert.Nil(t, err)
-
+	bm := NewMemoryCacheV2(20)
 	magic := -time.Duration(rand.Int())
 	cache := NewRandomExpireCache(bm, WithOffsetFunc(func() time.Duration {
 		return magic

@@ -26,8 +26,7 @@ import (
 )
 
 func TestReadThroughCache_Memory_Get(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":20}`)
-	assert.Nil(t, err)
+	bm := NewMemoryCacheV2(20)
 	testReadThroughCacheGet(t, bm)
 }
 

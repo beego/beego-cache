@@ -27,11 +27,10 @@ import (
 )
 
 func TestCacheIncr(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":20}`)
-	assert.Nil(t, err)
-	// timeoutDuration := 10 * time.Second
 
-	err = bm.Put(context.Background(), "edwardhey", 0, time.Second*20)
+	bm := NewMemoryCacheV2(20)
+
+	err := bm.Put(context.Background(), "edwardhey", 0, time.Second*20)
 	assert.Nil(t, err)
 	wg := sync.WaitGroup{}
 	wg.Add(10)
@@ -49,10 +48,10 @@ func TestCacheIncr(t *testing.T) {
 }
 
 func TestCache(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":1}`)
-	assert.Nil(t, err)
+
+	bm := NewMemoryCacheV2(1)
 	timeoutDuration := 5 * time.Second
-	if err = bm.Put(context.Background(), "astaxie", 1, timeoutDuration); err != nil {
+	if err := bm.Put(context.Background(), "astaxie", 1, timeoutDuration); err != nil {
 		t.Error("set Error", err)
 	}
 	if res, _ := bm.IsExist(context.Background(), "astaxie"); !res {
@@ -69,7 +68,7 @@ func TestCache(t *testing.T) {
 		t.Error("check err")
 	}
 
-	if err = bm.Put(context.Background(), "astaxie", 1, timeoutDuration); err != nil {
+	if err := bm.Put(context.Background(), "astaxie", 1, timeoutDuration); err != nil {
 		t.Error("set Error", err)
 	}
 
@@ -102,7 +101,7 @@ func TestCache(t *testing.T) {
 	assert.Equal(t, "author", vv[0])
 	assert.Equal(t, "author1", vv[1])
 
-	vv, err = bm.GetMulti(context.Background(), []string{"astaxie0", "astaxie1"})
+	vv, err := bm.GetMulti(context.Background(), []string{"astaxie0", "astaxie1"})
 	assert.Equal(t, 2, len(vv))
 	assert.Nil(t, vv[0])
 	assert.Equal(t, "author1", vv[1])
@@ -112,8 +111,15 @@ func TestCache(t *testing.T) {
 }
 
 func TestFileCache(t *testing.T) {
-	bm, err := NewCache("file", `{"CachePath":"cache","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}`)
+
+	bm, err := NewFileCacheV2(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
+
 	assert.Nil(t, err)
+
 	timeoutDuration := 10 * time.Second
 	assert.Nil(t, bm.Put(context.Background(), "astaxie", 1, timeoutDuration))
 

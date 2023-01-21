@@ -1,10 +1,22 @@
+// Copyright 2014 beego Author. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package ssdb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -177,45 +189,4 @@ func (rc *Cache) Scan(keyStart string, keyEnd string, limit int) ([]string, erro
 		return nil, err
 	}
 	return resp, nil
-}
-
-// StartAndGC starts the memcache adapter.
-// config: must be in the format {"conn":"connection info"}.
-// If an error occurs during connection, an error is returned
-func (rc *Cache) StartAndGC(config string) error {
-	var cf map[string]string
-	err := json.Unmarshal([]byte(config), &cf)
-	if err != nil {
-		return berror.Wrapf(err, cache.InvalidSsdbCacheCfg,
-			"unmarshal this config failed, it must be a valid json string: %s", config)
-	}
-	if _, ok := cf["conn"]; !ok {
-		return berror.Wrapf(err, cache.InvalidSsdbCacheCfg,
-			"Missing conn field: %s", config)
-	}
-	rc.conninfo = strings.Split(cf["conn"], ";")
-	return rc.connectInit()
-}
-
-// connect to memcache and keep the connection.
-func (rc *Cache) connectInit() error {
-	conninfoArray := strings.Split(rc.conninfo[0], ":")
-	if len(conninfoArray) < 2 {
-		return berror.Errorf(cache.InvalidSsdbCacheCfg, "The value of conn should be host:port: %s", rc.conninfo[0])
-	}
-	host := conninfoArray[0]
-	port, e := strconv.Atoi(conninfoArray[1])
-	if e != nil {
-		return berror.Errorf(cache.InvalidSsdbCacheCfg, "Port is invalid. It must be integer, %s", rc.conninfo[0])
-	}
-	var err error
-	if rc.conn, err = ssdb.Connect(host, port); err != nil {
-		return berror.Wrapf(err, cache.InvalidConnection,
-			"could not connect to SSDB, please check your connection info, network and firewall: %s", rc.conninfo[0])
-	}
-	return nil
-}
-
-func init() {
-	cache.Register("ssdb", NewSsdbCache)
 }

@@ -16,13 +16,13 @@ package ssdb
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ssdb/gossdb/ssdb"
 
 	cache "github.com/beego/beego-cache/v2"
 	"github.com/stretchr/testify/assert"
@@ -37,31 +37,43 @@ type Suite struct {
 }
 
 func (s *Suite) SetupSuite() {
+	//t := s.T()
+	//maxTryCnt := 10
+	//
+	//config := fmt.Sprintf(`{"conn": "%s"}`, s.dsn)
+	//
+	//bm, err := cache.NewCache(s.driver, config)
+	//
+	//for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
+	//	log.Printf("redis 连接异常...")
+	//	time.Sleep(time.Second)
+	//
+	//	bm, err = cache.NewCache(s.driver, config)
+	//	maxTryCnt--
+	//}
+
 	t := s.T()
 	maxTryCnt := 10
 
-	redisAddr := os.Getenv("SSDB_ADDR")
-	if redisAddr == "" {
-		redisAddr = s.dsn
+	conninfoArray := strings.Split(s.dsn, ":")
+	host := conninfoArray[0]
+	port, e := strconv.Atoi(conninfoArray[1])
+	if e != nil {
+		t.Fatal(e)
 	}
-
-	config := fmt.Sprintf(`{"conn": "%s"}`, redisAddr)
-
-	bm, err := cache.NewCache(s.driver, config)
-
-	for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
-		log.Printf("redis 连接异常...")
+	conn, err := ssdb.Connect(host, port)
+	for err != nil && maxTryCnt > 0 {
+		log.Printf("ssdb connection exception...")
 		time.Sleep(time.Second)
-
-		bm, err = cache.NewCache(s.driver, config)
+		conn, err = ssdb.Connect(host, port)
 		maxTryCnt--
 	}
-
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.cache = bm
 
+	bm := NewSsdbCacheV2(conn)
+	s.cache = bm
 }
 
 type SsdbCompositionTestSuite struct {

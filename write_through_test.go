@@ -40,7 +40,7 @@ func TestWriteThoughCache_Set(t *testing.T) {
 	}{
 		{
 			name:  "store key/value in db fail",
-			cache: NewMemoryCache(),
+			cache: NewMemoryCacheV2(20),
 			storeFunc: func(ctx context.Context, key string, val any) error {
 				return errors.New("failed")
 			},
@@ -49,7 +49,7 @@ func TestWriteThoughCache_Set(t *testing.T) {
 		},
 		{
 			name:  "store key/value success",
-			cache: NewMemoryCache(),
+			cache: NewMemoryCacheV2(20),
 			storeFunc: func(ctx context.Context, key string, val any) error {
 				mockDbStore[key] = val
 				return nil
@@ -84,7 +84,7 @@ func TestWriteThoughCache_Set(t *testing.T) {
 }
 
 func TestNewWriteThoughCache(t *testing.T) {
-	underlyingCache := NewMemoryCache()
+	underlyingCache := NewMemoryCacheV2(20)
 	storeFunc := func(ctx context.Context, key string, val any) error { return nil }
 
 	type args struct {

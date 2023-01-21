@@ -17,9 +17,11 @@ package redis
 import (
 	"context"
 	"fmt"
-	berror "github.com/beego/beego-error/v2"
+	"log"
 	"testing"
 	"time"
+
+	berror "github.com/beego/beego-error/v2"
 
 	cache "github.com/beego/beego-cache/v2"
 	"github.com/gomodule/redigo/redis"
@@ -64,7 +66,11 @@ func (s *Suite) SetupSuite() {
 	}
 
 	// initialize a new pool
-	pool := &redis.Pool{Dial: dialFunc}
+	pool := &redis.Pool{
+		Dial:        dialFunc,
+		MaxIdle:     3,
+		IdleTimeout: 3 * time.Second,
+	}
 	c := pool.Get()
 	defer func() {
 		_ = c.Close()
@@ -73,24 +79,21 @@ func (s *Suite) SetupSuite() {
 	// test connection
 	err := c.Err()
 	for err != nil && maxTryCnt > 0 {
+		log.Printf("redis connection exception...")
 		c := pool.Get()
 		err = c.Err()
 		maxTryCnt--
+		pool.Stats()
 	}
 	if err != nil {
-		t.Fatal(berror.Wrapf(
-			err, cache.InvalidConnection,
-			"can not connect to remote redis server, please check the connection info and network state: %s",
-			s.dsn))
+		t.Fatal(err)
 	}
 
 	bm := NewRedisCacheV2(pool)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 	s.cache = bm
-
 }
 
 type RedisCompositionTestSuite struct {
