@@ -26,7 +26,7 @@ import (
 
 func TestRandomExpireCache(t *testing.T) {
 
-	bm := NewMemoryCacheV2(20)
+	bm := NewMemoryCache(20)
 	cache := NewRandomExpireCache(bm)
 	// should not be nil
 	assert.NotNil(t, cache.(*RandomExpireCache).offset)
@@ -86,7 +86,7 @@ func TestRandomExpireCache(t *testing.T) {
 }
 
 func TestWithOffsetFunc(t *testing.T) {
-	bm := NewMemoryCacheV2(20)
+	bm := NewMemoryCache(20)
 	magic := -time.Duration(rand.Int())
 	cache := NewRandomExpireCache(bm, WithOffsetFunc(func() time.Duration {
 		return magic

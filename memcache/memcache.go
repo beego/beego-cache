@@ -40,13 +40,8 @@ func CacheWithConninfo(conninfo []string) CacheOptions {
 	}
 }
 
-// NewMemCache creates a new memcache adapter.
-func NewMemCache() cache.Cache {
-	return &Cache{}
-}
-
-// NewMemCacheV2 creates new memcache adapter.
-func NewMemCacheV2(conn *memcache.Client, opts ...CacheOptions) cache.Cache {
+// NewMemCache creates new memcache adapter.
+func NewMemCache(conn *memcache.Client, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
 		conn: conn,
 	}

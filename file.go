@@ -88,14 +88,7 @@ func FileCacheWithEmbedExpiry(fileCacheEmbedExpiry int) FileCacheOptions {
 
 // NewFileCache creates a new file cache with no config.
 // The level and expiry need to be set in the method StartAndGC as config string.
-func NewFileCache() Cache {
-	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
-	return &FileCache{}
-}
-
-// NewFileCacheV2 creates a new file cache with no config.
-// The level and expiry need to be set in the method StartAndGC as config string.
-func NewFileCacheV2(opts ...FileCacheOptions) (Cache, error) {
+func NewFileCache(opts ...FileCacheOptions) (Cache, error) {
 	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
 	res := &FileCache{
 		CachePath:      FileCachePath,

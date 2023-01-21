@@ -24,12 +24,12 @@ import (
 )
 
 func TestSingleflight_Memory_Get(t *testing.T) {
-	bm := NewMemoryCacheV2(20)
+	bm := NewMemoryCache(20)
 	testSingleflightCacheConcurrencyGet(t, bm)
 }
 
 func TestSingleflight_file_Get(t *testing.T) {
-	fc := NewFileCache().(*FileCache)
+	fc := &FileCache{}
 	fc.CachePath = "////aaa"
 	err := fc.Init()
 	assert.NotNil(t, err)

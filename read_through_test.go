@@ -26,12 +26,12 @@ import (
 )
 
 func TestReadThroughCache_Memory_Get(t *testing.T) {
-	bm := NewMemoryCacheV2(20)
+	bm := NewMemoryCache(20)
 	testReadThroughCacheGet(t, bm)
 }
 
 func TestReadThroughCache_file_Get(t *testing.T) {
-	fc := NewFileCache().(*FileCache)
+	fc := &FileCache{}
 	fc.CachePath = "////aaa"
 	err := fc.Init()
 	assert.NotNil(t, err)

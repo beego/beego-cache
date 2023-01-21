@@ -52,13 +52,7 @@ type MemoryCache struct {
 }
 
 // NewMemoryCache returns a new MemoryCache.
-func NewMemoryCache() Cache {
-	cache := MemoryCache{items: make(map[string]*MemoryItem)}
-	return &cache
-}
-
-// NewMemoryCacheV2 returns a new MemoryCache.
-func NewMemoryCacheV2(interval int) Cache {
+func NewMemoryCache(interval int) Cache {
 	res := &MemoryCache{
 		Every: interval,
 		items: make(map[string]*MemoryItem),

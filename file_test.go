@@ -24,37 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func TestFileCacheStartAndGC(t *testing.T) {
-//	fc := NewFileCache().(*FileCache)
-//	err := fc.StartAndGC(`{`)
-//	assert.NotNil(t, err)
-//	err = fc.StartAndGC(`{}`)
-//	assert.Nil(t, err)
-//
-//	assert.Equal(t, fc.CachePath, FileCachePath)
-//	assert.Equal(t, fc.DirectoryLevel, FileCacheDirectoryLevel)
-//	assert.Equal(t, fc.EmbedExpiry, int(FileCacheEmbedExpiry))
-//	assert.Equal(t, fc.FileSuffix, FileCacheFileSuffix)
-//
-//	err = fc.StartAndGC(`{"CachePath":"/cache","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}`)
-//	// could not create dir
-//	assert.NotNil(t, err)
-//
-//	str := getTestCacheFilePath()
-//	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}`, str))
-//	assert.Nil(t, err)
-//	assert.Equal(t, fc.CachePath, str)
-//	assert.Equal(t, fc.DirectoryLevel, 2)
-//	assert.Equal(t, fc.EmbedExpiry, 0)
-//	assert.Equal(t, fc.FileSuffix, ".bin")
-//
-//	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"aaa","EmbedExpiry":"0"}`, str))
-//	assert.NotNil(t, err)
-//
-//	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"aaa"}`, str))
-//	assert.NotNil(t, err)
-//}
-
 func TestFileCacheInit(t *testing.T) {
 	fc := &FileCache{}
 	FileCacheWithCachePath("////aaa")(fc)
@@ -64,16 +33,6 @@ func TestFileCacheInit(t *testing.T) {
 	err = fc.Init()
 	assert.Nil(t, err)
 }
-
-//func TestFileCacheInit(t *testing.T) {
-//	fc := NewFileCache().(*FileCache)
-//	fc.CachePath = "////aaa"
-//	err := fc.Init()
-//	assert.NotNil(t, err)
-//	fc.CachePath = getTestCacheFilePath()
-//	err = fc.Init()
-//	assert.Nil(t, err)
-//}
 
 func TestFileGetContents(t *testing.T) {
 	_, err := FileGetContents("/bin/aaa")
@@ -106,7 +65,7 @@ func TestGobEncodeDecode(t *testing.T) {
 }
 
 func TestFileCacheDelete(t *testing.T) {
-	fc, err := NewFileCacheV2()
+	fc, err := NewFileCache()
 	assert.Nil(t, err)
 	err = fc.Delete(context.Background(), "my-key")
 	assert.Nil(t, err)

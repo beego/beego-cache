@@ -42,12 +42,7 @@ func CacheWithConninfo(conninfo []string) CacheOptions {
 }
 
 // NewSsdbCache creates new ssdb adapter.
-func NewSsdbCache() cache.Cache {
-	return &Cache{}
-}
-
-// NewSsdbCacheV2 creates new ssdb adapter.
-func NewSsdbCacheV2(conn *ssdb.Client, opts ...CacheOptions) cache.Cache {
+func NewSsdbCache(conn *ssdb.Client, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
 		conn: conn,
 	}

@@ -28,7 +28,7 @@ import (
 
 func TestCacheIncr(t *testing.T) {
 
-	bm := NewMemoryCacheV2(20)
+	bm := NewMemoryCache(20)
 
 	err := bm.Put(context.Background(), "edwardhey", 0, time.Second*20)
 	assert.Nil(t, err)
@@ -49,7 +49,7 @@ func TestCacheIncr(t *testing.T) {
 
 func TestCache(t *testing.T) {
 
-	bm := NewMemoryCacheV2(1)
+	bm := NewMemoryCache(1)
 	timeoutDuration := 5 * time.Second
 	if err := bm.Put(context.Background(), "astaxie", 1, timeoutDuration); err != nil {
 		t.Error("set Error", err)
@@ -112,7 +112,7 @@ func TestCache(t *testing.T) {
 
 func TestFileCache(t *testing.T) {
 
-	bm, err := NewFileCacheV2(
+	bm, err := NewFileCache(
 		FileCacheWithCachePath("cache"),
 		FileCacheWithFileSuffix(".bin"),
 		FileCacheWithDirectoryLevel(2),

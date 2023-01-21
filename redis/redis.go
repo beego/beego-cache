@@ -32,13 +32,7 @@ var DefaultKey = "beecacheRedis"
 type Cache struct {
 	p        *redis.Pool // redis connection pool
 	conninfo string
-	//dbNum    int
-	key string
-	//password string
-	//maxIdle  int
-	//
-	//// Timeout value (less than the redis server's timeout value)
-	//timeout time.Duration
+	key      string
 }
 
 type CacheOptions func(c *Cache)
@@ -58,12 +52,7 @@ func CacheWithKey(key string) CacheOptions {
 }
 
 // NewRedisCache creates a new redis cache with default collection name.
-func NewRedisCache() cache.Cache {
-	return &Cache{key: DefaultKey}
-}
-
-// NewRedisCacheV2 creates a new redis cache with default collection name.
-func NewRedisCacheV2(pool *redis.Pool, opts ...CacheOptions) cache.Cache {
+func NewRedisCache(pool *redis.Pool, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
 		p:   pool,
 		key: DefaultKey,

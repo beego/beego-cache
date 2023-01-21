@@ -40,23 +40,12 @@ func (s *Suite) SetupSuite() {
 	t := s.T()
 	maxTryCnt := 10
 
-	//config := fmt.Sprintf(`{"conn": "%s"}`, s.dsn)
-	//bm, err := cache.NewCache(s.driver, config)
-	//for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
-	//	log.Printf("redis 连接异常...")
-	//	time.Sleep(time.Second)
-	//
-	//	bm, err = cache.NewCache(s.driver, config)
-	//	maxTryCnt--
-	//}
-
 	dialFunc := func() (c redis.Conn, err error) {
 		c, err = redis.Dial("tcp", s.dsn)
 		if err != nil {
 			return nil, berror.Wrapf(err, cache.DialFailed,
 				"could not dial to remote %s server: %s ", s.driver, s.dsn)
 		}
-
 		_, selecterr := c.Do("SELECT", 0)
 		if selecterr != nil {
 			_ = c.Close()
@@ -89,7 +78,7 @@ func (s *Suite) SetupSuite() {
 		t.Fatal(err)
 	}
 
-	bm := NewRedisCacheV2(pool)
+	bm := NewRedisCache(pool)
 	if err != nil {
 		t.Fatal(err)
 	}

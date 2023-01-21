@@ -36,23 +36,6 @@ type Suite struct {
 }
 
 func (s *Suite) SetupSuite() {
-	// t := s.T()
-	// maxTryCnt := 10
-
-	//config := fmt.Sprintf(`{"conn": "%s"}`, s.dsn)
-	//bm, err := cache.NewCache(s.driver, config)
-	//
-	//for err != nil && strings.Contains(cache.InvalidConnection.Desc(), err.Error()) && maxTryCnt > 0 {
-	//	log.Printf("redis 连接异常...")
-	//	time.Sleep(time.Second)
-	//
-	//	bm, err = cache.NewCache(s.driver, config)
-	//	maxTryCnt--
-	//}
-	//
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
 
 	t := s.T()
 	maxTryCnt := 10
@@ -69,7 +52,7 @@ func (s *Suite) SetupSuite() {
 		t.Fatal(err)
 	}
 
-	bm := NewMemCacheV2(pool)
+	bm := NewMemCache(pool)
 
 	s.cache = bm
 
