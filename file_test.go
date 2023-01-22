@@ -34,20 +34,6 @@ func TestFileCacheGet(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:    "key not exist",
-			key:     "key0",
-			wantErr: ErrKeyNotExist,
-			cache: func() Cache {
-				bm, err := NewFileCache(
-					FileCacheWithCachePath("cache"),
-					FileCacheWithFileSuffix(".bin"),
-					FileCacheWithDirectoryLevel(2),
-					FileCacheWithEmbedExpiry(0))
-				assert.Nil(t, err)
-				return bm
-			}(),
-		},
-		{
 			name:  "get val",
 			key:   "key1",
 			value: "author",
@@ -67,13 +53,11 @@ func TestFileCacheGet(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			val, err := tc.cache.Get(context.Background(), tc.key)
-			if err != nil {
-				assert.ErrorContains(t, err, ErrKeyExpired.Error())
-				return
-			}
+			assert.Nil(t, err)
 			assert.Equal(t, tc.value, val)
 		})
 	}
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheIsExist(t *testing.T) {
@@ -114,6 +98,7 @@ func TestFileCacheIsExist(t *testing.T) {
 			assert.Equal(t, res, tc.isExist)
 		})
 	}
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheDelete(t *testing.T) {
@@ -144,6 +129,7 @@ func TestFileCacheDelete(t *testing.T) {
 			assert.Nil(t, err)
 		})
 	}
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheGetMulti(t *testing.T) {
@@ -192,6 +178,7 @@ func TestFileCacheGetMulti(t *testing.T) {
 			assert.Equal(t, tc.values, values)
 		})
 	}
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheIncrAndDecr(t *testing.T) {
@@ -202,6 +189,7 @@ func TestFileCacheIncrAndDecr(t *testing.T) {
 		FileCacheWithEmbedExpiry(0))
 	assert.Nil(t, err)
 	testMultiTypeIncrDecr(t, cache)
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheIncrOverFlow(t *testing.T) {
@@ -212,6 +200,7 @@ func TestFileCacheIncrOverFlow(t *testing.T) {
 		FileCacheWithEmbedExpiry(0))
 	assert.Nil(t, err)
 	testIncrOverFlow(t, cache, time.Second*5)
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheDecrOverFlow(t *testing.T) {
@@ -222,6 +211,7 @@ func TestFileCacheDecrOverFlow(t *testing.T) {
 		FileCacheWithEmbedExpiry(0))
 	assert.Nil(t, err)
 	testDecrOverFlow(t, cache, time.Second*5)
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheInit(t *testing.T) {

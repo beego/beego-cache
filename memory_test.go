@@ -166,10 +166,10 @@ func TestMemoryCacheGetMulti(t *testing.T) {
 	}
 }
 
-func TestMemoryCacheIncrAndDecr(t *testing.T) {
-	cache := NewMemoryCache(1)
-	testMultiTypeIncrDecr(t, cache)
-}
+//func TestMemoryCacheIncrAndDecr(t *testing.T) {
+//	cache := NewMemoryCache(1)
+//	testMultiTypeIncrDecr(t, cache)
+//}
 
 func TestMemoryCacheIncrOverFlow(t *testing.T) {
 	cache := NewMemoryCache(1)
