@@ -1,10 +1,10 @@
-// Copyright 2021 beego
+// Copyright 2014 beego Author. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// http://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,16 +16,14 @@ package cache
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFileCacheGet(t *testing.T) {
+func TestMemoryCacheGet(t *testing.T) {
 	testCases := []struct {
 		name    string
 		key     string
@@ -38,12 +36,7 @@ func TestFileCacheGet(t *testing.T) {
 			key:     "key0",
 			wantErr: ErrKeyNotExist,
 			cache: func() Cache {
-				bm, err := NewFileCache(
-					FileCacheWithCachePath("cache"),
-					FileCacheWithFileSuffix(".bin"),
-					FileCacheWithDirectoryLevel(2),
-					FileCacheWithEmbedExpiry(0))
-				assert.Nil(t, err)
+				bm := NewMemoryCache(1)
 				return bm
 			}(),
 		},
@@ -52,13 +45,8 @@ func TestFileCacheGet(t *testing.T) {
 			key:   "key1",
 			value: "author",
 			cache: func() Cache {
-				bm, err := NewFileCache(
-					FileCacheWithCachePath("cache"),
-					FileCacheWithFileSuffix(".bin"),
-					FileCacheWithDirectoryLevel(2),
-					FileCacheWithEmbedExpiry(0))
-				assert.Nil(t, err)
-				err = bm.Put(context.Background(), "key1", "author", 5*time.Second)
+				bm := NewMemoryCache(1)
+				err := bm.Put(context.Background(), "key1", "author", 5*time.Second)
 				assert.Nil(t, err)
 				return bm
 			}(),
@@ -67,8 +55,8 @@ func TestFileCacheGet(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			val, err := tc.cache.Get(context.Background(), tc.key)
+			assert.Equal(t, tc.wantErr, err)
 			if err != nil {
-				assert.ErrorContains(t, err, ErrKeyExpired.Error())
 				return
 			}
 			assert.Equal(t, tc.value, val)
@@ -76,13 +64,8 @@ func TestFileCacheGet(t *testing.T) {
 	}
 }
 
-func TestFileCacheIsExist(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheIsExist(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testCases := []struct {
 		name            string
 		key             string
@@ -91,11 +74,10 @@ func TestFileCacheIsExist(t *testing.T) {
 		isExist         bool
 	}{
 		{
-			name:            "expired",
+			name:            "not exist",
 			key:             "key0",
 			value:           "value0",
 			timeoutDuration: 1 * time.Second,
-			isExist:         true,
 		},
 		{
 			name:            "exist",
@@ -116,13 +98,8 @@ func TestFileCacheIsExist(t *testing.T) {
 	}
 }
 
-func TestFileCacheDelete(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheDelete(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testCases := []struct {
 		name            string
 		key             string
@@ -146,13 +123,8 @@ func TestFileCacheDelete(t *testing.T) {
 	}
 }
 
-func TestFileCacheGetMulti(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheGetMulti(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testCases := []struct {
 		name            string
 		keys            []string
@@ -160,7 +132,7 @@ func TestFileCacheGetMulti(t *testing.T) {
 		timeoutDuration time.Duration
 	}{
 		{
-			name:            "key expired",
+			name:            "key not exist",
 			keys:            []string{"key0", "key1"},
 			values:          []any{"value0", "value1"},
 			timeoutDuration: 1 * time.Second,
@@ -182,7 +154,7 @@ func TestFileCacheGetMulti(t *testing.T) {
 			time.Sleep(2 * time.Second)
 			vals, err := cache.GetMulti(context.Background(), tc.keys)
 			if err != nil {
-				assert.ErrorContains(t, err, ErrKeyExpired.Error())
+				assert.ErrorContains(t, err, ErrKeyNotExist.Error())
 				return
 			}
 			values := make([]any, 0, len(tc.values))
@@ -194,76 +166,36 @@ func TestFileCacheGetMulti(t *testing.T) {
 	}
 }
 
-func TestFileCacheIncrAndDecr(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheIncrAndDecr(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testMultiTypeIncrDecr(t, cache)
 }
 
-func TestFileCacheIncrOverFlow(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheIncrOverFlow(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testIncrOverFlow(t, cache, time.Second*5)
 }
 
-func TestFileCacheDecrOverFlow(t *testing.T) {
-	cache, err := NewFileCache(
-		FileCacheWithCachePath("cache"),
-		FileCacheWithFileSuffix(".bin"),
-		FileCacheWithDirectoryLevel(2),
-		FileCacheWithEmbedExpiry(0))
-	assert.Nil(t, err)
+func TestMemoryCacheDecrOverFlow(t *testing.T) {
+	cache := NewMemoryCache(1)
 	testDecrOverFlow(t, cache, time.Second*5)
 }
 
-func TestFileCacheInit(t *testing.T) {
-	fc := &FileCache{}
-	FileCacheWithCachePath("////aaa")(fc)
-	err := fc.Init()
-	assert.NotNil(t, err)
-	FileCacheWithCachePath(getTestCacheFilePath())(fc)
-	err = fc.Init()
+func TestMemoryCacheConcurrencyIncr(t *testing.T) {
+	bm := NewMemoryCache(20)
+	err := bm.Put(context.Background(), "edwardhey", 0, time.Second*20)
 	assert.Nil(t, err)
-}
-
-func TestFileGetContents(t *testing.T) {
-	_, err := FileGetContents("/bin/aaa")
-	assert.NotNil(t, err)
-	fn := filepath.Join(os.TempDir(), "fileCache.txt")
-	f, err := os.Create(fn)
-	assert.Nil(t, err)
-	_, err = f.WriteString("text")
-	assert.Nil(t, err)
-	data, err := FileGetContents(fn)
-	assert.Nil(t, err)
-	assert.Equal(t, "text", string(data))
-}
-
-func TestGobEncodeDecode(t *testing.T) {
-	_, err := GobEncode(func() {
-		fmt.Print("test func")
-	})
-	assert.NotNil(t, err)
-	data, err := GobEncode(&FileCacheItem{
-		Data: "hello",
-	})
-	assert.Nil(t, err)
-	err = GobDecode([]byte("wrong data"), &FileCacheItem{})
-	assert.NotNil(t, err)
-	dci := &FileCacheItem{}
-	err = GobDecode(data, dci)
-	assert.Nil(t, err)
-	assert.Equal(t, "hello", dci.Data)
-}
-
-func getTestCacheFilePath() string {
-	return filepath.Join(os.TempDir(), "test", "file.txt")
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+			_ = bm.Incr(context.Background(), "edwardhey")
+		}()
+	}
+	wg.Wait()
+	val, _ := bm.Get(context.Background(), "edwardhey")
+	if val.(int) != 10 {
+		t.Error("Incr err")
+	}
 }
