@@ -41,12 +41,24 @@ func TestMemoryCacheGet(t *testing.T) {
 			}(),
 		},
 		{
+			name: "key expire",
+			key:  "key1",
+			cache: func() Cache {
+				bm := NewMemoryCache(20)
+				err := bm.Put(context.Background(), "key1", "value1", 1*time.Second)
+				time.Sleep(2 * time.Second)
+				assert.Nil(t, err)
+				return bm
+			}(),
+			wantErr: ErrKeyExpired,
+		},
+		{
 			name:  "get val",
-			key:   "key1",
+			key:   "key2",
 			value: "author",
 			cache: func() Cache {
 				bm := NewMemoryCache(1)
-				err := bm.Put(context.Background(), "key1", "author", 5*time.Second)
+				err := bm.Put(context.Background(), "key2", "author", 5*time.Second)
 				assert.Nil(t, err)
 				return bm
 			}(),
@@ -66,110 +78,23 @@ func TestMemoryCacheGet(t *testing.T) {
 
 func TestMemoryCacheIsExist(t *testing.T) {
 	cache := NewMemoryCache(1)
-	testCases := []struct {
-		name            string
-		key             string
-		value           string
-		timeoutDuration time.Duration
-		isExist         bool
-	}{
-		{
-			name:            "not exist",
-			key:             "key0",
-			value:           "value0",
-			timeoutDuration: 1 * time.Second,
-		},
-		{
-			name:            "exist",
-			key:             "key1",
-			value:           "author",
-			timeoutDuration: 5 * time.Second,
-			isExist:         true,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
-			assert.Nil(t, err)
-			time.Sleep(2 * time.Second)
-			res, _ := cache.IsExist(context.Background(), tc.key)
-			assert.Equal(t, res, tc.isExist)
-		})
-	}
+	testMemoryCacheIsExist(t, cache)
 }
 
 func TestMemoryCacheDelete(t *testing.T) {
 	cache := NewMemoryCache(1)
-	testCases := []struct {
-		name            string
-		key             string
-		value           string
-		timeoutDuration time.Duration
-	}{
-		{
-			name:            "delete val",
-			key:             "key1",
-			value:           "author",
-			timeoutDuration: 5 * time.Second,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
-			assert.Nil(t, err)
-			err = cache.Delete(context.Background(), tc.key)
-			assert.Nil(t, err)
-		})
-	}
+	testMemoryCacheDelete(t, cache)
 }
 
 func TestMemoryCacheGetMulti(t *testing.T) {
 	cache := NewMemoryCache(1)
-	testCases := []struct {
-		name            string
-		keys            []string
-		values          []any
-		timeoutDuration time.Duration
-	}{
-		{
-			name:            "key not exist",
-			keys:            []string{"key0", "key1"},
-			values:          []any{"value0", "value1"},
-			timeoutDuration: 1 * time.Second,
-		},
-		{
-			name:            "get multi val",
-			keys:            []string{"key2", "key3"},
-			values:          []any{"value2", "value3"},
-			timeoutDuration: 5 * time.Second,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			for idx, key := range tc.keys {
-				value := tc.values[idx]
-				err := cache.Put(context.Background(), key, value, tc.timeoutDuration)
-				assert.Nil(t, err)
-			}
-			time.Sleep(2 * time.Second)
-			vals, err := cache.GetMulti(context.Background(), tc.keys)
-			if err != nil {
-				assert.ErrorContains(t, err, ErrKeyNotExist.Error())
-				return
-			}
-			values := make([]any, 0, len(tc.values))
-			for _, val := range vals {
-				values = append(values, val)
-			}
-			assert.Equal(t, tc.values, values)
-		})
-	}
+	testMemoryCacheGetMulti(t, cache)
 }
 
-//func TestMemoryCacheIncrAndDecr(t *testing.T) {
-//	cache := NewMemoryCache(1)
-//	testMultiTypeIncrDecr(t, cache)
-//}
+func TestMemoryCacheIncrAndDecr(t *testing.T) {
+	cache := NewMemoryCache(1)
+	testMultiTypeIncrDecr(t, cache)
+}
 
 func TestMemoryCacheIncrOverFlow(t *testing.T) {
 	cache := NewMemoryCache(1)
@@ -197,5 +122,104 @@ func TestMemoryCacheConcurrencyIncr(t *testing.T) {
 	val, _ := bm.Get(context.Background(), "edwardhey")
 	if val.(int) != 10 {
 		t.Error("Incr err")
+	}
+}
+
+func testMemoryCacheIsExist(t *testing.T, cache Cache) {
+	testCases := []struct {
+		name            string
+		key             string
+		value           string
+		timeoutDuration time.Duration
+		isExist         bool
+	}{
+		{
+			name:            "not exist",
+			key:             "key0",
+			value:           "value0",
+			timeoutDuration: 1 * time.Second,
+		},
+		{
+			name:            "exist",
+			key:             "key1",
+			value:           "author",
+			timeoutDuration: 12 * time.Second,
+			isExist:         true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+			assert.Nil(t, err)
+			time.Sleep(10 * time.Second)
+			res, _ := cache.IsExist(context.Background(), tc.key)
+			assert.Equal(t, res, tc.isExist)
+		})
+	}
+}
+
+func testMemoryCacheDelete(t *testing.T, cache Cache) {
+	testCases := []struct {
+		name            string
+		key             string
+		value           string
+		timeoutDuration time.Duration
+	}{
+		{
+			name:            "delete val",
+			key:             "key1",
+			value:           "author",
+			timeoutDuration: 5 * time.Second,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+			assert.Nil(t, err)
+			err = cache.Delete(context.Background(), tc.key)
+			assert.Nil(t, err)
+		})
+	}
+}
+
+func testMemoryCacheGetMulti(t *testing.T, cache Cache) {
+	testCases := []struct {
+		name            string
+		keys            []string
+		values          []any
+		timeoutDuration time.Duration
+	}{
+		{
+			name:            "key not exist",
+			keys:            []string{"key0", "key1"},
+			values:          []any{"value0", "value1"},
+			timeoutDuration: 1 * time.Second,
+		},
+		{
+			name:            "get multi val",
+			keys:            []string{"key2", "key3"},
+			values:          []any{"value2", "value3"},
+			timeoutDuration: 12 * time.Second,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for idx, key := range tc.keys {
+				value := tc.values[idx]
+				err := cache.Put(context.Background(), key, value, tc.timeoutDuration)
+				assert.Nil(t, err)
+			}
+			time.Sleep(10 * time.Second)
+			vals, err := cache.GetMulti(context.Background(), tc.keys)
+			if err != nil {
+				assert.ErrorContains(t, err, ErrKeyNotExist.Error())
+				return
+			}
+			values := make([]any, 0, len(tc.values))
+			for _, val := range vals {
+				values = append(values, val)
+			}
+			assert.Equal(t, tc.values, values)
+		})
 	}
 }

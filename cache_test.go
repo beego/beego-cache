@@ -71,8 +71,6 @@ func testMultiTypeIncrDecr(t *testing.T, cache Cache) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// testIncrDecr(t, cache, tc.beforeIncr, tc.afterIncr, tc.timeoutDuration)
-
 			assert.Nil(t, cache.Put(ctx, key, tc.beforeIncr, tc.timeoutDuration))
 			assert.Nil(t, cache.Incr(ctx, key))
 

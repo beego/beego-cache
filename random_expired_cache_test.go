@@ -85,6 +85,77 @@ func TestRandomExpireCache(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "key isn't exist"))
 }
 
+func TestRandomExpireCacheGet(t *testing.T) {
+	testCases := []struct {
+		name    string
+		key     string
+		value   string
+		cache   Cache
+		wantErr error
+	}{
+		{
+			name:    "key not exist",
+			key:     "key0",
+			wantErr: ErrKeyNotExist,
+			cache: func() Cache {
+				bm := NewMemoryCache(20)
+				cache := NewRandomExpireCache(bm)
+				// should not be nil
+				assert.NotNil(t, cache.(*RandomExpireCache).offset)
+				return cache
+			}(),
+		},
+		{
+			name:  "get val",
+			key:   "key2",
+			value: "author",
+			cache: func() Cache {
+				bm := NewMemoryCache(20)
+				cache := NewRandomExpireCache(bm)
+				// should not be nil
+				assert.NotNil(t, cache.(*RandomExpireCache).offset)
+				err := cache.Put(context.Background(), "key2", "author", 5*time.Second)
+				assert.Nil(t, err)
+				return cache
+			}(),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := tc.cache.Get(context.Background(), tc.key)
+			assert.Equal(t, tc.wantErr, err)
+			if err != nil {
+				return
+			}
+			assert.Equal(t, tc.value, val)
+		})
+	}
+}
+
+func TestRandomExpireCacheIsExist(t *testing.T) {
+	bm := NewMemoryCache(20)
+	cache := NewRandomExpireCache(bm)
+	// should not be nil
+	assert.NotNil(t, cache.(*RandomExpireCache).offset)
+	testMemoryCacheIsExist(t, cache)
+}
+
+func TestRandomExpireCacheDelete(t *testing.T) {
+	bm := NewMemoryCache(20)
+	cache := NewRandomExpireCache(bm)
+	// should not be nil
+	assert.NotNil(t, cache.(*RandomExpireCache).offset)
+	testMemoryCacheDelete(t, cache)
+}
+
+func TestRandomExpireCacheGetMulti(t *testing.T) {
+	bm := NewMemoryCache(1)
+	cache := NewRandomExpireCache(bm)
+	// should not be nil
+	assert.NotNil(t, cache.(*RandomExpireCache).offset)
+	testMemoryCacheGetMulti(t, cache)
+}
+
 func TestWithOffsetFunc(t *testing.T) {
 	bm := NewMemoryCache(20)
 	magic := -time.Duration(rand.Int())
