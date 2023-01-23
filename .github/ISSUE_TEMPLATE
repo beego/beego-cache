@@ -1,0 +1,20 @@
+**English Only**. Please use English because others could join the discussion if they got similar issue!
+
+Please answer these questions before submitting your issue. Thanks!
+
+1. What version of Go and beego are you using (`bee version`)?
+
+
+2. What operating system and processor architecture are you using (`go env`)?
+
+
+3. What did you do?
+If possible, provide a recipe for reproducing the error.
+A complete runnable program is good.
+
+If this is ORM issue, please provide the DB schemas.
+
+4. What did you expect to see?
+
+
+5. What did you see instead?

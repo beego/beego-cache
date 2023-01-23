@@ -1,0 +1,61 @@
+name: Test
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/test.yml"
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
+      - develop
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [1.18]
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+      memcached:
+        image: memcached:latest
+        ports:
+          - 11211:11211
+      ssdb:
+        image: wendal/ssdb:latest
+        ports:
+          - 8888:8888
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Checkout codebase
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Upload codecov
+        env:
+          CODECOV_TOKEN: 4f4bc484-32a8-43b7-9f48-20966bd48ceb
+        run: bash <(curl -s https://codecov.io/bash)
