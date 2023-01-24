@@ -16,9 +16,9 @@ name: Go
 
 on:
   push:
-    branches: [ main, dev, develop]
+    branches: [ main]
   pull_request:
-    branches: [ main, dev, develop]
+    branches: [ main]
 
 jobs:
   build:

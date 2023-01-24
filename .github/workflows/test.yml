@@ -22,27 +22,14 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version: [1.18]
+  build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: Checkout codebase
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+          go-version: 1.18
 
       - name: Test
         run: sh ./script/integrate_test.sh
-
-      - name: Upload codecov
-        env:
-          CODECOV_TOKEN: 4f4bc484-32a8-43b7-9f48-20966bd48ceb
-        run: bash <(curl -s https://codecov.io/bash)
