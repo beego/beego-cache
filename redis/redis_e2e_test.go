@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -312,10 +313,14 @@ func (s *RedisCompositionTestSuite) TestCacheScan() {
 }
 
 func TestRedisComposition(t *testing.T) {
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "127.0.0.1:6379"
+	}
 	suite.Run(t, &RedisCompositionTestSuite{
 		Suite{
 			driver: "redis",
-			dsn:    "127.0.0.1:6379",
+			dsn:    redisAddr,
 		},
 	})
 }

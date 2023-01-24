@@ -17,6 +17,7 @@ package ssdb
 import (
 	"context"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -237,10 +238,14 @@ func (s *SsdbCompositionTestSuite) TestSsdbCacheGetMulti() {
 }
 
 func TestSsdbComposition(t *testing.T) {
+	ssdbAddr := os.Getenv("SSDB_ADDR")
+	if ssdbAddr == "" {
+		ssdbAddr = "127.0.0.1:8888"
+	}
 	suite.Run(t, &SsdbCompositionTestSuite{
 		Suite{
 			driver: "ssdb",
-			dsn:    "127.0.0.1:8888",
+			dsn:    ssdbAddr,
 		},
 	})
 }

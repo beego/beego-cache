@@ -17,6 +17,7 @@ package memcache
 import (
 	"context"
 	"log"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -235,10 +236,14 @@ func (s *MemcacheCompositionTestSuite) TestMemcacheCacheGetMulti() {
 }
 
 func TestSsdbComposition(t *testing.T) {
+	memCacheAddr := os.Getenv("MEMCACHE_ADDR")
+	if memCacheAddr == "" {
+		memCacheAddr = "127.0.0.1:11211"
+	}
 	suite.Run(t, &MemcacheCompositionTestSuite{
 		Suite{
 			driver: "memcache",
-			dsn:    "127.0.0.1:11211",
+			dsn:    memCacheAddr,
 		},
 	})
 }
