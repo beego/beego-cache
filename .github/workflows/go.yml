@@ -34,7 +34,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -race -coverprofile=cover.out -v ./...
+        run: sh ./script/integrate_test.sh
 
       - name: Post Coverage
         uses: codecov/codecov-action@v2
