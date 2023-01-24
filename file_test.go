@@ -171,11 +171,7 @@ func TestFileCacheGetMulti(t *testing.T) {
 				assert.ErrorContains(t, err, ErrKeyExpired.Error())
 				return
 			}
-			values := make([]any, 0, len(tc.values))
-			for _, val := range vals {
-				values = append(values, val)
-			}
-			assert.Equal(t, tc.values, values)
+			assert.Equal(t, tc.values, vals)
 		})
 	}
 	assert.Nil(t, os.RemoveAll("cache"))

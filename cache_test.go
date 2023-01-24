@@ -113,11 +113,7 @@ func testMemoryCacheGetMulti(t *testing.T, cache Cache) {
 				assert.ErrorContains(t, err, ErrKeyNotExist.Error())
 				return
 			}
-			values := make([]any, 0, len(tc.values))
-			for _, val := range vals {
-				values = append(values, val)
-			}
-			assert.Equal(t, tc.values, values)
+			assert.Equal(t, tc.values, vals)
 		})
 	}
 }

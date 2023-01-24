@@ -2,8 +2,7 @@ name: Test
 on:
   push:
     branches:
-      - master
-      - develop
+      - main
     paths:
       - "**/*.go"
       - "go.mod"
@@ -12,8 +11,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
-      - master
-      - develop
+      - main
     paths:
       - "**/*.go"
       - "go.mod"
@@ -35,9 +33,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go-version }}
-
-      - name: Test
-        run: sh ./script/integrate_test.sh
 
       - name: Checkout codebase
         uses: actions/checkout@v2
