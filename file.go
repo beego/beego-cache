@@ -20,7 +20,6 @@ import (
 	"crypto/md5"
 	"encoding/gob"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -57,55 +56,56 @@ type FileCache struct {
 	EmbedExpiry    int
 }
 
-// NewFileCache creates a new file cache with no config.
-// The level and expiry need to be set in the method StartAndGC as config string.
-func NewFileCache() Cache {
-	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
-	return &FileCache{}
+type FileCacheOptions func(c *FileCache)
+
+// FileCacheWithCachePath configures cachePath for FileCache
+func FileCacheWithCachePath(cachePath string) FileCacheOptions {
+	return func(c *FileCache) {
+		c.CachePath = cachePath
+	}
 }
 
-// StartAndGC starts gc for file cache.
-// config must be in the format {CachePath:"/cache","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}
-func (fc *FileCache) StartAndGC(config string) error {
-	cfg := make(map[string]string)
-	err := json.Unmarshal([]byte(config), &cfg)
-	if err != nil {
-		return err
+// FileCacheWithFileSuffix configures fileSuffix for FileCache
+func FileCacheWithFileSuffix(fileSuffix string) FileCacheOptions {
+	return func(c *FileCache) {
+		c.FileSuffix = fileSuffix
+	}
+}
+
+// FileCacheWithDirectoryLevel configures directoryLevel for FileCache
+func FileCacheWithDirectoryLevel(directoryLevel int) FileCacheOptions {
+	return func(c *FileCache) {
+		c.DirectoryLevel = directoryLevel
+	}
+}
+
+// FileCacheWithEmbedExpiry configures fileCacheEmbedExpiry for FileCache
+func FileCacheWithEmbedExpiry(fileCacheEmbedExpiry int) FileCacheOptions {
+	return func(c *FileCache) {
+		c.EmbedExpiry = fileCacheEmbedExpiry
+	}
+}
+
+// NewFileCache creates a new file cache with no config.
+// The level and expiry need to be set in the method StartAndGC as config string.
+func NewFileCache(opts ...FileCacheOptions) (Cache, error) {
+	//    return &FileCache{CachePath:FileCachePath, FileSuffix:FileCacheFileSuffix}
+	res := &FileCache{
+		CachePath:      FileCachePath,
+		FileSuffix:     FileCacheFileSuffix,
+		DirectoryLevel: FileCacheDirectoryLevel,
+	}
+	res.EmbedExpiry, _ = strconv.Atoi(
+		strconv.FormatInt(int64(FileCacheEmbedExpiry.Seconds()), 10))
+
+	for _, opt := range opts {
+		opt(res)
 	}
 
-	const cpKey = "CachePath"
-	const fsKey = "FileSuffix"
-	const dlKey = "DirectoryLevel"
-	const eeKey = "EmbedExpiry"
-
-	if _, ok := cfg[cpKey]; !ok {
-		cfg[cpKey] = FileCachePath
+	if err := res.Init(); err != nil {
+		return nil, err
 	}
-
-	if _, ok := cfg[fsKey]; !ok {
-		cfg[fsKey] = FileCacheFileSuffix
-	}
-
-	if _, ok := cfg[dlKey]; !ok {
-		cfg[dlKey] = strconv.Itoa(FileCacheDirectoryLevel)
-	}
-
-	if _, ok := cfg[eeKey]; !ok {
-		cfg[eeKey] = strconv.FormatInt(int64(FileCacheEmbedExpiry.Seconds()), 10)
-	}
-	fc.CachePath = cfg[cpKey]
-	fc.FileSuffix = cfg[fsKey]
-	fc.DirectoryLevel, err = strconv.Atoi(cfg[dlKey])
-	if err != nil {
-		return berror.Wrapf(err, InvalidFileCacheDirectoryLevelCfg,
-			"invalid directory level config, please check your input, it must be integer: %s", cfg[dlKey])
-	}
-	fc.EmbedExpiry, err = strconv.Atoi(cfg[eeKey])
-	if err != nil {
-		return berror.Wrapf(err, InvalidFileCacheEmbedExpiryCfg,
-			"invalid embed expiry config, please check your input, it must be integer: %s", cfg[eeKey])
-	}
-	return fc.Init()
+	return res, nil
 }
 
 // Init makes new a dir for file cache if it does not already exist
@@ -331,8 +331,4 @@ func GobDecode(data []byte, to *FileCacheItem) error {
 			"could not decode this data to FileCacheItem. Make sure that the data is encoded by GOB.")
 	}
 	return nil
-}
-
-func init() {
-	Register("file", NewFileCache)
 }

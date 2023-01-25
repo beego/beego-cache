@@ -20,47 +20,202 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFileCacheStartAndGC(t *testing.T) {
-	fc := NewFileCache().(*FileCache)
-	err := fc.StartAndGC(`{`)
-	assert.NotNil(t, err)
-	err = fc.StartAndGC(`{}`)
+func TestFileCacheGet(t *testing.T) {
+	testCases := []struct {
+		name    string
+		key     string
+		value   string
+		cache   Cache
+		wantErr error
+	}{
+		{
+			name:  "get val",
+			key:   "key1",
+			value: "author",
+			cache: func() Cache {
+				bm, err := NewFileCache(
+					FileCacheWithCachePath("cache"),
+					FileCacheWithFileSuffix(".bin"),
+					FileCacheWithDirectoryLevel(2),
+					FileCacheWithEmbedExpiry(0))
+				assert.Nil(t, err)
+				err = bm.Put(context.Background(), "key1", "author", 5*time.Second)
+				assert.Nil(t, err)
+				return bm
+			}(),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			val, err := tc.cache.Get(context.Background(), tc.key)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.value, val)
+		})
+	}
+	assert.Nil(t, os.RemoveAll("cache"))
+}
+
+func TestFileCacheIsExist(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
 	assert.Nil(t, err)
+	testCases := []struct {
+		name            string
+		key             string
+		value           string
+		timeoutDuration time.Duration
+		isExist         bool
+	}{
+		{
+			name:            "expired",
+			key:             "key0",
+			value:           "value0",
+			timeoutDuration: 1 * time.Second,
+			isExist:         true,
+		},
+		{
+			name:            "exist",
+			key:             "key1",
+			value:           "author",
+			timeoutDuration: 5 * time.Second,
+			isExist:         true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+			assert.Nil(t, err)
+			time.Sleep(2 * time.Second)
+			res, _ := cache.IsExist(context.Background(), tc.key)
+			assert.Equal(t, res, tc.isExist)
+		})
+	}
+	assert.Nil(t, os.RemoveAll("cache"))
+}
 
-	assert.Equal(t, fc.CachePath, FileCachePath)
-	assert.Equal(t, fc.DirectoryLevel, FileCacheDirectoryLevel)
-	assert.Equal(t, fc.EmbedExpiry, int(FileCacheEmbedExpiry))
-	assert.Equal(t, fc.FileSuffix, FileCacheFileSuffix)
-
-	err = fc.StartAndGC(`{"CachePath":"/cache","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}`)
-	// could not create dir
-	assert.NotNil(t, err)
-
-	str := getTestCacheFilePath()
-	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"0"}`, str))
+func TestFileCacheDelete(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
 	assert.Nil(t, err)
-	assert.Equal(t, fc.CachePath, str)
-	assert.Equal(t, fc.DirectoryLevel, 2)
-	assert.Equal(t, fc.EmbedExpiry, 0)
-	assert.Equal(t, fc.FileSuffix, ".bin")
+	testCases := []struct {
+		name            string
+		key             string
+		value           string
+		timeoutDuration time.Duration
+	}{
+		{
+			name:            "delete val",
+			key:             "key1",
+			value:           "author",
+			timeoutDuration: 5 * time.Second,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := cache.Put(context.Background(), tc.key, tc.value, tc.timeoutDuration)
+			assert.Nil(t, err)
+			err = cache.Delete(context.Background(), tc.key)
+			assert.Nil(t, err)
+		})
+	}
+	assert.Nil(t, os.RemoveAll("cache"))
+}
 
-	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"aaa","EmbedExpiry":"0"}`, str))
-	assert.NotNil(t, err)
+func TestFileCacheGetMulti(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
+	assert.Nil(t, err)
+	testCases := []struct {
+		name            string
+		keys            []string
+		values          []any
+		timeoutDuration time.Duration
+	}{
+		{
+			name:            "key expired",
+			keys:            []string{"key0", "key1"},
+			values:          []any{"value0", "value1"},
+			timeoutDuration: 1 * time.Second,
+		},
+		{
+			name:            "get multi val",
+			keys:            []string{"key2", "key3"},
+			values:          []any{"value2", "value3"},
+			timeoutDuration: 5 * time.Second,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for idx, key := range tc.keys {
+				value := tc.values[idx]
+				err := cache.Put(context.Background(), key, value, tc.timeoutDuration)
+				assert.Nil(t, err)
+			}
+			time.Sleep(2 * time.Second)
+			vals, err := cache.GetMulti(context.Background(), tc.keys)
+			if err != nil {
+				assert.ErrorContains(t, err, ErrKeyExpired.Error())
+				return
+			}
+			assert.Equal(t, tc.values, vals)
+		})
+	}
+	assert.Nil(t, os.RemoveAll("cache"))
+}
 
-	err = fc.StartAndGC(fmt.Sprintf(`{"CachePath":"%s","FileSuffix":".bin","DirectoryLevel":"2","EmbedExpiry":"aaa"}`, str))
-	assert.NotNil(t, err)
+func TestFileCacheIncrAndDecr(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
+	assert.Nil(t, err)
+	testMultiTypeIncrDecr(t, cache)
+	assert.Nil(t, os.RemoveAll("cache"))
+}
+
+func TestFileCacheIncrOverFlow(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
+	assert.Nil(t, err)
+	testIncrOverFlow(t, cache, time.Second*5)
+	assert.Nil(t, os.RemoveAll("cache"))
+}
+
+func TestFileCacheDecrOverFlow(t *testing.T) {
+	cache, err := NewFileCache(
+		FileCacheWithCachePath("cache"),
+		FileCacheWithFileSuffix(".bin"),
+		FileCacheWithDirectoryLevel(2),
+		FileCacheWithEmbedExpiry(0))
+	assert.Nil(t, err)
+	testDecrOverFlow(t, cache, time.Second*5)
+	assert.Nil(t, os.RemoveAll("cache"))
 }
 
 func TestFileCacheInit(t *testing.T) {
-	fc := NewFileCache().(*FileCache)
-	fc.CachePath = "////aaa"
+	fc := &FileCache{}
+	FileCacheWithCachePath("////aaa")(fc)
 	err := fc.Init()
 	assert.NotNil(t, err)
-	fc.CachePath = getTestCacheFilePath()
+	FileCacheWithCachePath(getTestCacheFilePath())(fc)
 	err = fc.Init()
 	assert.Nil(t, err)
 }
@@ -93,14 +248,6 @@ func TestGobEncodeDecode(t *testing.T) {
 	err = GobDecode(data, dci)
 	assert.Nil(t, err)
 	assert.Equal(t, "hello", dci.Data)
-}
-
-func TestFileCacheDelete(t *testing.T) {
-	fc := NewFileCache()
-	err := fc.StartAndGC(`{}`)
-	assert.Nil(t, err)
-	err = fc.Delete(context.Background(), "my-key")
-	assert.Nil(t, err)
 }
 
 func getTestCacheFilePath() string {

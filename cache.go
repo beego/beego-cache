@@ -33,8 +33,6 @@ package cache
 import (
 	"context"
 	"time"
-
-	berror "github.com/beego/beego-error/v2"
 )
 
 // Cache interface contains all behaviors for cache adapter.
@@ -66,41 +64,4 @@ type Cache interface {
 	IsExist(ctx context.Context, key string) (bool, error)
 	// ClearAll Clear all cache.
 	ClearAll(ctx context.Context) error
-	// StartAndGC Start gc routine based on config string settings.
-	StartAndGC(config string) error
-}
-
-// Instance is a function create a new Cache Instance
-type Instance func() Cache
-
-var adapters = make(map[string]Instance)
-
-// Register makes a cache adapter available by the adapter name.
-// If Register is called twice with the same name or if driver is nil,
-// it panics.
-func Register(name string, adapter Instance) {
-	if adapter == nil {
-		panic(berror.Error(NilCacheAdapter, "cache: Register adapter is nil").Error())
-	}
-	if _, ok := adapters[name]; ok {
-		panic("cache: Register called twice for adapter " + name)
-	}
-	adapters[name] = adapter
-}
-
-// NewCache creates a new cache driver by adapter name and config string.
-// config: must be in JSON format such as {"interval":360}.
-// Starts gc automatically.
-func NewCache(adapterName, config string) (adapter Cache, err error) {
-	instanceFunc, ok := adapters[adapterName]
-	if !ok {
-		err = berror.Errorf(UnknownAdapter, "cache: unknown adapter name %s (forgot to import?)", adapterName)
-		return
-	}
-	adapter = instanceFunc()
-	err = adapter.StartAndGC(config)
-	if err != nil {
-		adapter = nil
-	}
-	return
 }

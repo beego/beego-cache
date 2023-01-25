@@ -18,22 +18,6 @@ import (
 	berror "github.com/beego/beego-error/v2"
 )
 
-var NilCacheAdapter = berror.DefineCode(4002001, moduleName, "NilCacheAdapter", `
-It means that you register cache adapter by pass nil.
-A cache adapter is an instance of Cache interface. 
-`)
-
-var DuplicateAdapter = berror.DefineCode(4002002, moduleName, "DuplicateAdapter", `
-You register two adapter with same name. In beego cache module, one name one adapter.
-Once you got this error, please check the error stack, search adapter 
-`)
-
-var UnknownAdapter = berror.DefineCode(4002003, moduleName, "UnknownAdapter", `
-Unknown adapter, do you forget to register the adapter?
-You must register adapter before use it. For example, if you want to use redis implementation, 
-you must import the cache/redis package.
-`)
-
 var IncrementOverflow = berror.DefineCode(4002004, moduleName, "IncrementOverflow", `
 The increment operation will overflow.
 `)
@@ -45,16 +29,6 @@ The decrement operation will overflow.
 var NotIntegerType = berror.DefineCode(4002006, moduleName, "NotIntegerType", `
 The type of value is not (u)int (u)int32 (u)int64. 
 When you want to call Incr or Decr function of Cache API, you must confirm that the value's type is one of (u)int (u)int32 (u)int64.
-`)
-
-var InvalidFileCacheDirectoryLevelCfg = berror.DefineCode(4002007, moduleName, "InvalidFileCacheDirectoryLevelCfg", `
-You pass invalid DirectoryLevel parameter when you try to StartAndGC file cache instance.
-This parameter must be a integer, and please check your input.
-`)
-
-var InvalidFileCacheEmbedExpiryCfg = berror.DefineCode(4002008, moduleName, "InvalidFileCacheEmbedExpiryCfg", `
-You pass invalid EmbedExpiry parameter when you try to StartAndGC file cache instance.
-This parameter must be a integer, and please check your input.
 `)
 
 var CreateFileCacheDirFailed = berror.DefineCode(4002009, moduleName, "CreateFileCacheDirFailed", `
@@ -98,25 +72,8 @@ var MultiGetFailed = berror.DefineCode(4002016, moduleName, "MultiGetFailed", `
 Get multiple keys failed. Please check the detail msg to find out the root cause.
 `)
 
-var InvalidMemoryCacheCfg = berror.DefineCode(4002017, moduleName, "InvalidMemoryCacheCfg", `
-The config is invalid. Please check your input. It must be a json string.
-`)
-
-var InvalidMemCacheCfg = berror.DefineCode(4002018, moduleName, "InvalidMemCacheCfg", `
-The config is invalid. Please check your input, it must be json string and contains "conn" field.
-`)
-
 var InvalidMemCacheValue = berror.DefineCode(4002019, moduleName, "InvalidMemCacheValue", `
 The value must be string or byte[], please check your input.
-`)
-
-var InvalidRedisCacheCfg = berror.DefineCode(4002020, moduleName, "InvalidRedisCacheCfg", `
-The config must be json string, and has "conn" field.
-`)
-
-var InvalidSsdbCacheCfg = berror.DefineCode(4002021, moduleName, "InvalidSsdbCacheCfg", `
-The config must be json string, and has "conn" field. The value of "conn" field should be "host:port".
-"port" must be a valid integer.
 `)
 
 var InvalidSsdbCacheValue = berror.DefineCode(4002022, moduleName, "InvalidSsdbCacheValue", `
@@ -165,11 +122,6 @@ When Beego uses client to send request to redis server, it failed.
 
 In general, if you always got this error whatever you do, in most cases, it was caused by network issue. 
 You could check your network state, and confirm that firewall rules are correct.
-`)
-
-var InvalidConnection = berror.DefineCode(5002004, moduleName, "InvalidConnection", `
-The connection is invalid. Please check your connection info, network, firewall.
-You could simply uses ping, telnet or write some simple tests to test network.
 `)
 
 var DialFailed = berror.DefineCode(5002005, moduleName, "DialFailed", `

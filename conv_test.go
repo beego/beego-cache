@@ -21,69 +21,191 @@ import (
 )
 
 func TestGetString(t *testing.T) {
-	t1 := "test1"
-
-	assert.Equal(t, "test1", GetString(t1))
-	t2 := []byte("test2")
-	assert.Equal(t, "test2", GetString(t2))
-	t3 := 1
-	assert.Equal(t, "1", GetString(t3))
-	var t4 int64 = 1
-	assert.Equal(t, "1", GetString(t4))
-	t5 := 1.1
-	assert.Equal(t, "1.1", GetString(t5))
-	assert.Equal(t, "", GetString(nil))
+	testCases := []struct {
+		name    string
+		value   any
+		wantVal any
+	}{
+		{
+			name:    "string",
+			value:   "test1",
+			wantVal: "test1",
+		},
+		{
+			name:    "bytes",
+			value:   []byte("test2"),
+			wantVal: "test2",
+		},
+		{
+			name:    "int",
+			value:   1,
+			wantVal: "1",
+		},
+		{
+			name:    "int64",
+			value:   int64(1),
+			wantVal: "1",
+		},
+		{
+			name:    "float",
+			value:   1.1,
+			wantVal: "1.1",
+		},
+		{
+			name:    "nil",
+			value:   nil,
+			wantVal: "",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantVal, GetString(tc.value))
+		})
+	}
 }
 
 func TestGetInt(t *testing.T) {
-	t1 := 1
-	assert.Equal(t, 1, GetInt(t1))
-	var t2 int32 = 32
-	assert.Equal(t, 32, GetInt(t2))
-
-	var t3 int64 = 64
-	assert.Equal(t, 64, GetInt(t3))
-	t4 := "128"
-
-	assert.Equal(t, 128, GetInt(t4))
-	assert.Equal(t, 0, GetInt(nil))
+	testCases := []struct {
+		name    string
+		value   any
+		wantVal any
+	}{
+		{
+			name:    "int",
+			value:   1,
+			wantVal: 1,
+		},
+		{
+			name:    "int32",
+			value:   int32(32),
+			wantVal: 32,
+		},
+		{
+			name:    "int64",
+			value:   int64(64),
+			wantVal: 64,
+		},
+		{
+			name:    "string",
+			value:   "128",
+			wantVal: 128,
+		},
+		{
+			name:    "nil",
+			value:   nil,
+			wantVal: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantVal, GetInt(tc.value))
+		})
+	}
 }
 
 func TestGetInt64(t *testing.T) {
-	var i int64 = 1
-	t1 := 1
-	assert.Equal(t, i, GetInt64(t1))
-	var t2 int32 = 1
-
-	assert.Equal(t, i, GetInt64(t2))
-	var t3 int64 = 1
-	assert.Equal(t, i, GetInt64(t3))
-	t4 := "1"
-	assert.Equal(t, i, GetInt64(t4))
-	assert.Equal(t, int64(0), GetInt64(nil))
+	testCases := []struct {
+		name    string
+		value   any
+		wantVal any
+	}{
+		{
+			name:    "int",
+			value:   1,
+			wantVal: int64(1),
+		},
+		{
+			name:    "int32",
+			value:   int32(32),
+			wantVal: int64(32),
+		},
+		{
+			name:    "int64",
+			value:   int64(64),
+			wantVal: int64(64),
+		},
+		{
+			name:    "string",
+			value:   "128",
+			wantVal: int64(128),
+		},
+		{
+			name:    "nil",
+			value:   nil,
+			wantVal: int64(0),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantVal, GetInt64(tc.value))
+		})
+	}
 }
 
 func TestGetFloat64(t *testing.T) {
-	f := 1.11
-	var t1 float32 = 1.11
-	assert.Equal(t, f, GetFloat64(t1))
-	t2 := 1.11
-	assert.Equal(t, f, GetFloat64(t2))
-	t3 := "1.11"
-	assert.Equal(t, f, GetFloat64(t3))
-
-	var f2 float64 = 1
-	t4 := 1
-	assert.Equal(t, f2, GetFloat64(t4))
-
-	assert.Equal(t, float64(0), GetFloat64(nil))
+	testCases := []struct {
+		name    string
+		value   any
+		wantVal any
+	}{
+		{
+			name:    "float32",
+			value:   float32(1.11),
+			wantVal: 1.11,
+		},
+		{
+			name:    "float",
+			value:   1.11,
+			wantVal: 1.11,
+		},
+		{
+			name:    "float64",
+			value:   1,
+			wantVal: float64(1),
+		},
+		{
+			name:    "string",
+			value:   "1.11",
+			wantVal: 1.11,
+		},
+		{
+			name:    "nil",
+			value:   nil,
+			wantVal: float64(0),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantVal, GetFloat64(tc.value))
+		})
+	}
 }
 
 func TestGetBool(t *testing.T) {
-	t1 := true
-	assert.True(t, GetBool(t1))
-	t2 := "true"
-	assert.True(t, GetBool(t2))
-
-	assert.False(t, GetBool(nil))
+	testCases := []struct {
+		name    string
+		value   any
+		wantVal any
+	}{
+		{
+			name:    "bool",
+			value:   true,
+			wantVal: true,
+		},
+		{
+			name:    "string",
+			value:   "true",
+			wantVal: true,
+		},
+		{
+			name:    "nil",
+			value:   nil,
+			wantVal: false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.wantVal, GetBool(tc.value))
+		})
+	}
 }

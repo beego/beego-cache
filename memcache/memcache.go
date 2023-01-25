@@ -16,13 +16,13 @@ package memcache
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	cache "github.com/beego/beego-cache/v2"
 	berror "github.com/beego/beego-error/v2"
 	"github.com/bradfitz/gomemcache/memcache"
-	"strings"
-	"time"
 )
 
 // Cache Memcache adapter.
@@ -31,9 +31,24 @@ type Cache struct {
 	conninfo []string
 }
 
-// NewMemCache creates a new memcache adapter.
-func NewMemCache() cache.Cache {
-	return &Cache{}
+type CacheOptions func(c *Cache)
+
+// CacheWithConninfo configures conninfo for memcache
+func CacheWithConninfo(conninfo []string) CacheOptions {
+	return func(c *Cache) {
+		c.conninfo = conninfo
+	}
+}
+
+// NewMemCache creates new memcache adapter.
+func NewMemCache(conn *memcache.Client, opts ...CacheOptions) cache.Cache {
+	res := &Cache{
+		conn: conn,
+	}
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // Get get value from memcache.
@@ -119,26 +134,4 @@ func (rc *Cache) IsExist(ctx context.Context, key string) (bool, error) {
 func (rc *Cache) ClearAll(context.Context) error {
 	return berror.Wrap(rc.conn.FlushAll(), cache.MemCacheCurdFailed,
 		"try to clear all key-value pairs failed")
-}
-
-// StartAndGC starts the memcache adapter.
-// config: must be in the format {"conn":"connection info"}.
-// If an error occurs during connecting, an error is returned
-func (rc *Cache) StartAndGC(config string) error {
-	var cf map[string]string
-	if err := json.Unmarshal([]byte(config), &cf); err != nil {
-		return berror.Wrapf(err, cache.InvalidMemCacheCfg,
-			"could not unmarshal this config, it must be valid json stringP: %s", config)
-	}
-
-	if _, ok := cf["conn"]; !ok {
-		return berror.Errorf(cache.InvalidMemCacheCfg, `config must contains "conn" field: %s`, config)
-	}
-	rc.conninfo = strings.Split(cf["conn"], ";")
-	rc.conn = memcache.New(rc.conninfo...)
-	return nil
-}
-
-func init() {
-	cache.Register("memcache", NewMemCache)
 }

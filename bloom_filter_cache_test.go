@@ -55,7 +55,7 @@ func (b *BloomFilterMock) Test(data string) bool {
 }
 
 var (
-	mockDB    = MockDB{Db: NewMemoryCache(), loadCnt: 0}
+	mockDB    = MockDB{Db: NewMemoryCache(20), loadCnt: 0}
 	mockBloom = &BloomFilterMock{
 		BloomFilter: bloom.NewWithEstimates(20000, 0.01),
 		lock:        &sync.RWMutex{},
@@ -69,7 +69,7 @@ var (
 		}
 		return v, nil
 	}
-	cacheUnderlying = NewMemoryCache()
+	cacheUnderlying = NewMemoryCache(20)
 )
 
 func TestBloomFilterCache_Get(t *testing.T) {

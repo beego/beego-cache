@@ -16,7 +16,6 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,7 +25,7 @@ import (
 )
 
 // DefaultEvery sets a timer for how often to recycle the expired cache items in memory (in seconds)
-var DefaultEvery = 60 // 1 minute
+//var DefaultEvery = 60 // 1 minute
 
 // MemoryItem stores memory cache item.
 type MemoryItem struct {
@@ -53,9 +52,14 @@ type MemoryCache struct {
 }
 
 // NewMemoryCache returns a new MemoryCache.
-func NewMemoryCache() Cache {
-	cache := MemoryCache{items: make(map[string]*MemoryItem)}
-	return &cache
+func NewMemoryCache(interval int) Cache {
+	res := &MemoryCache{
+		Every: interval,
+		items: make(map[string]*MemoryItem),
+		dur:   time.Duration(interval) * time.Second,
+	}
+	go res.vacuum()
+	return res
 }
 
 // Get returns cache from memory.
@@ -168,23 +172,6 @@ func (bc *MemoryCache) ClearAll(context.Context) error {
 	return nil
 }
 
-// StartAndGC starts memory cache. Checks expiration in every clock time.
-func (bc *MemoryCache) StartAndGC(config string) error {
-	var cf map[string]int
-	if err := json.Unmarshal([]byte(config), &cf); err != nil {
-		return berror.Wrapf(err, InvalidMemoryCacheCfg, "invalid config, please check your input: %s", config)
-	}
-	if _, ok := cf["interval"]; !ok {
-		cf = make(map[string]int)
-		cf["interval"] = DefaultEvery
-	}
-	dur := time.Duration(cf["interval"]) * time.Second
-	bc.Every = cf["interval"]
-	bc.dur = dur
-	go bc.vacuum()
-	return nil
-}
-
 // check expiration.
 func (bc *MemoryCache) vacuum() {
 	bc.RLock()
@@ -227,8 +214,4 @@ func (bc *MemoryCache) clearItems(keys []string) {
 	for _, key := range keys {
 		delete(bc.items, key)
 	}
-}
-
-func init() {
-	Register("memory", NewMemoryCache)
 }

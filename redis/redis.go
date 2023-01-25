@@ -16,12 +16,10 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	cache "github.com/beego/beego-cache/v2"
-	"strconv"
-	"strings"
 	"time"
+
+	cache "github.com/beego/beego-cache/v2"
 
 	berror "github.com/beego/beego-error/v2"
 	"github.com/gomodule/redigo/redis"
@@ -34,18 +32,36 @@ var DefaultKey = "beecacheRedis"
 type Cache struct {
 	p        *redis.Pool // redis connection pool
 	conninfo string
-	dbNum    int
 	key      string
-	password string
-	maxIdle  int
+}
 
-	// Timeout value (less than the redis server's timeout value)
-	timeout time.Duration
+type CacheOptions func(c *Cache)
+
+// CacheWithConninfo configures conninfo for redis
+func CacheWithConninfo(conninfo string) CacheOptions {
+	return func(c *Cache) {
+		c.conninfo = conninfo
+	}
+}
+
+// CacheWithKey configures key for redis
+func CacheWithKey(key string) CacheOptions {
+	return func(c *Cache) {
+		c.key = key
+	}
 }
 
 // NewRedisCache creates a new redis cache with default collection name.
-func NewRedisCache() cache.Cache {
-	return &Cache{key: DefaultKey}
+func NewRedisCache(pool *redis.Pool, opts ...CacheOptions) cache.Cache {
+	res := &Cache{
+		p:   pool,
+		key: DefaultKey,
+	}
+
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
 }
 
 // Execute the redis commands. args[0] must be the key name
@@ -173,102 +189,4 @@ func (rc *Cache) Scan(pattern string) (keys []string, err error) {
 			return
 		}
 	}
-}
-
-// StartAndGC starts the redis cache adapter.
-// config: must be in this format {"key":"collection key","conn":"connection info","dbNum":"0"}
-// Cached items in redis are stored forever, no garbage collection happens
-func (rc *Cache) StartAndGC(config string) error {
-	var cf map[string]string
-	err := json.Unmarshal([]byte(config), &cf)
-	if err != nil {
-		return berror.Wrapf(err, cache.InvalidRedisCacheCfg, "could not unmarshal the config: %s", config)
-	}
-
-	if _, ok := cf["key"]; !ok {
-		cf["key"] = DefaultKey
-	}
-	if _, ok := cf["conn"]; !ok {
-		return berror.Wrapf(err, cache.InvalidRedisCacheCfg, "config missing conn field: %s", config)
-	}
-
-	// Format redis://<password>@<host>:<port>
-	cf["conn"] = strings.Replace(cf["conn"], "redis://", "", 1)
-	if i := strings.Index(cf["conn"], "@"); i > -1 {
-		cf["password"] = cf["conn"][0:i]
-		cf["conn"] = cf["conn"][i+1:]
-	}
-
-	if _, ok := cf["dbNum"]; !ok {
-		cf["dbNum"] = "0"
-	}
-	if _, ok := cf["password"]; !ok {
-		cf["password"] = ""
-	}
-	if _, ok := cf["maxIdle"]; !ok {
-		cf["maxIdle"] = "3"
-	}
-	if _, ok := cf["timeout"]; !ok {
-		cf["timeout"] = "180s"
-	}
-	rc.key = cf["key"]
-	rc.conninfo = cf["conn"]
-	rc.dbNum, _ = strconv.Atoi(cf["dbNum"])
-	rc.password = cf["password"]
-	rc.maxIdle, _ = strconv.Atoi(cf["maxIdle"])
-
-	if v, err := time.ParseDuration(cf["timeout"]); err == nil {
-		rc.timeout = v
-	} else {
-		rc.timeout = 180 * time.Second
-	}
-
-	rc.connectInit()
-
-	c := rc.p.Get()
-	defer func() {
-		_ = c.Close()
-	}()
-
-	// test connection
-	if err = c.Err(); err != nil {
-		return berror.Wrapf(err, cache.InvalidConnection,
-			"can not connect to remote redis server, please check the connection info and network state: %s", config)
-	}
-	return nil
-}
-
-// connect to redis.
-func (rc *Cache) connectInit() {
-	dialFunc := func() (c redis.Conn, err error) {
-		c, err = redis.Dial("tcp", rc.conninfo)
-		if err != nil {
-			return nil, berror.Wrapf(err, cache.DialFailed,
-				"could not dial to remote server: %s ", rc.conninfo)
-		}
-
-		if rc.password != "" {
-			if _, err = c.Do("AUTH", rc.password); err != nil {
-				_ = c.Close()
-				return nil, err
-			}
-		}
-
-		_, selecterr := c.Do("SELECT", rc.dbNum)
-		if selecterr != nil {
-			_ = c.Close()
-			return nil, selecterr
-		}
-		return
-	}
-	// initialize a new pool
-	rc.p = &redis.Pool{
-		MaxIdle:     rc.maxIdle,
-		IdleTimeout: rc.timeout,
-		Dial:        dialFunc,
-	}
-}
-
-func init() {
-	cache.Register("redis", NewRedisCache)
 }
