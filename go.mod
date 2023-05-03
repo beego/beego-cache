@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/beego/beego-error/v2 v2.0.0-20230116171004-8c59c626ffeb
-	github.com/bits-and-blooms/bloom/v3 v3.3.1
+	github.com/bits-and-blooms/bloom/v3 v3.4.0
 	github.com/bradfitz/gomemcache v0.0.0-20221031212613-62deef7fc822
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/ssdb/gossdb v0.0.0-20180723034631-88f6b59b84ec
