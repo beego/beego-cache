@@ -19,13 +19,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
-	berror "github.com/beego/beego-error/v2"
-
 	cache "github.com/beego/beego-cache/v2"
-	"github.com/gomodule/redigo/redis"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -41,45 +40,23 @@ func (s *Suite) SetupSuite() {
 	t := s.T()
 	maxTryCnt := 10
 
-	dialFunc := func() (c redis.Conn, err error) {
-		c, err = redis.Dial("tcp", s.dsn)
-		if err != nil {
-			return nil, berror.Wrapf(err, cache.DialFailed,
-				"could not dial to remote %s server: %s ", s.driver, s.dsn)
-		}
-		_, selecterr := c.Do("SELECT", 0)
-		if selecterr != nil {
-			_ = c.Close()
-			return nil, selecterr
-		}
-		return
-	}
+	client := redis.NewClient(&redis.Options{
+		Network: "tcp",
+		Addr:    s.dsn,
+	})
 
-	// initialize a new pool
-	pool := &redis.Pool{
-		Dial:        dialFunc,
-		MaxIdle:     3,
-		IdleTimeout: 3 * time.Second,
-	}
-	c := pool.Get()
-	defer func() {
-		_ = c.Close()
-	}()
-
-	// test connection
-	err := c.Err()
+	err := client.Ping(context.Background()).Err()
 	for err != nil && maxTryCnt > 0 {
 		log.Printf("redis connection exception...")
-		c := pool.Get()
-		err = c.Err()
+		err = client.Ping(context.Background()).Err()
 		maxTryCnt--
-		pool.Stats()
 	}
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	bm := NewRedisCache(pool)
+	bm := NewRedisCache(client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,8 +109,8 @@ func (s *RedisCompositionTestSuite) TestRedisCacheGet() {
 			//	return
 			//}
 			assert.Nil(t, err)
-			vs, _ := redis.String(val, err)
-			assert.Equal(t, tc.value, vs)
+			// vs, _ := redis.String(val, err)
+			assert.Equal(t, tc.value, val)
 		})
 	}
 }
@@ -238,7 +215,8 @@ func (s *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
 			assert.Nil(t, err)
 			values := make([]string, 0, len(tc.values))
 			for _, v := range vals {
-				vs, _ := redis.String(v, err)
+				vs, ok := v.(string)
+				assert.True(t, ok)
 				values = append(values, vs)
 			}
 			assert.Equal(t, tc.values, values)
@@ -268,22 +246,19 @@ func (s *RedisCompositionTestSuite) TestRedisCacheIncrAndDecr() {
 
 			val, err := s.cache.Get(context.Background(), tc.key)
 			assert.Nil(t, err)
-			v1, _ := redis.Int(val, err)
-			assert.Equal(t, tc.value, v1)
+			assert.Equal(t, strconv.Itoa(tc.value), val)
 
 			assert.Nil(t, s.cache.Incr(context.Background(), tc.key))
 
 			val, err = s.cache.Get(context.Background(), tc.key)
 			assert.Nil(t, err)
-			v2, _ := redis.Int(val, err)
-			assert.Equal(t, v1+1, v2)
+			assert.Equal(t, strconv.Itoa(tc.value+1), val)
 
 			assert.Nil(t, s.cache.Decr(context.Background(), tc.key))
 
 			val, err = s.cache.Get(context.Background(), tc.key)
 			assert.Nil(t, err)
-			v3, _ := redis.Int(val, err)
-			assert.Equal(t, tc.value, v3)
+			assert.Equal(t, strconv.Itoa(tc.value), val)
 		})
 	}
 }
@@ -298,7 +273,7 @@ func (s *RedisCompositionTestSuite) TestCacheScan() {
 	}
 	time.Sleep(time.Second)
 	// scan all for the first time
-	keys, err := s.cache.(*Cache).Scan(DefaultKey + ":*")
+	keys, err := s.cache.(*Cache).Scan(context.Background(), DefaultKey+":*")
 	assert.Nil(t, err)
 
 	assert.Equal(t, 100, len(keys), "scan all error")
@@ -307,7 +282,7 @@ func (s *RedisCompositionTestSuite) TestCacheScan() {
 	assert.Nil(t, s.cache.ClearAll(context.Background()))
 
 	// scan all for the second time
-	keys, err = s.cache.(*Cache).Scan(DefaultKey + ":*")
+	keys, err = s.cache.(*Cache).Scan(context.Background(), DefaultKey+":*")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(keys))
 }

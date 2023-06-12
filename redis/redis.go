@@ -17,20 +17,21 @@ package redis
 import (
 	"context"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"time"
 
 	cache "github.com/beego/beego-cache/v2"
-
-	berror "github.com/beego/beego-error/v2"
-	"github.com/gomodule/redigo/redis"
 )
 
-// DefaultKey defines the collection name of redis for the cache adapter.
-var DefaultKey = "beecacheRedis"
+var (
+	// DefaultKey defines the collection name of redis for the cache adapter.
+	DefaultKey = "beecacheRedis"
+	ScanCount  = int64(1 << 10) // aka 1024
+)
 
 // Cache is Redis cache adapter.
 type Cache struct {
-	p        *redis.Pool // redis connection pool
+	client   redis.Cmdable // redis client
 	conninfo string
 	key      string
 }
@@ -52,33 +53,16 @@ func CacheWithKey(key string) CacheOptions {
 }
 
 // NewRedisCache creates a new redis cache with default collection name.
-func NewRedisCache(pool *redis.Pool, opts ...CacheOptions) cache.Cache {
+func NewRedisCache(client redis.Cmdable, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
-		p:   pool,
-		key: DefaultKey,
+		client: client,
+		key:    DefaultKey,
 	}
 
 	for _, opt := range opts {
 		opt(res)
 	}
 	return res
-}
-
-// Execute the redis commands. args[0] must be the key name
-func (rc *Cache) do(commandName string, args ...interface{}) (interface{}, error) {
-	args[0] = rc.associate(args[0])
-	c := rc.p.Get()
-	defer func() {
-		_ = c.Close()
-	}()
-
-	reply, err := c.Do(commandName, args...)
-	if err != nil {
-		return nil, berror.Wrapf(err, cache.RedisCacheCurdFailed,
-			"could not execute this command: %s", commandName)
-	}
-
-	return reply, nil
 }
 
 // associate with config key.
@@ -88,105 +72,73 @@ func (rc *Cache) associate(originKey interface{}) string {
 
 // Get cache from redis.
 func (rc *Cache) Get(ctx context.Context, key string) (interface{}, error) {
-	if v, err := rc.do("GET", key); err == nil {
-		return v, nil
-	} else {
-		return nil, err
-	}
+	return rc.client.Get(ctx, rc.associate(key)).Result()
 }
 
 // GetMulti gets cache from redis.
 func (rc *Cache) GetMulti(ctx context.Context, keys []string) ([]interface{}, error) {
-	c := rc.p.Get()
-	defer func() {
-		_ = c.Close()
-	}()
-	var args []interface{}
+	args := make([]string, 0, len(keys))
 	for _, key := range keys {
 		args = append(args, rc.associate(key))
 	}
-	return redis.Values(c.Do("MGET", args...))
+	return rc.client.MGet(ctx, args...).Result()
 }
 
 // Put puts cache into redis.
 func (rc *Cache) Put(ctx context.Context, key string, val interface{}, timeout time.Duration) error {
-	_, err := rc.do("SETEX", key, int64(timeout/time.Second), val)
-	return err
+	return rc.client.Set(ctx, rc.associate(key), val, timeout).Err()
 }
 
 // Delete deletes a key's cache in redis.
 func (rc *Cache) Delete(ctx context.Context, key string) error {
-	_, err := rc.do("DEL", key)
-	return err
+	return rc.client.Del(ctx, rc.associate(key)).Err()
 }
 
 // IsExist checks cache's existence in redis.
 func (rc *Cache) IsExist(ctx context.Context, key string) (bool, error) {
-	v, err := redis.Bool(rc.do("EXISTS", key))
-	if err != nil {
-		return false, err
-	}
-	return v, nil
+	count, err := rc.client.Exists(ctx, rc.associate(key)).Result()
+	return count != 0, err
 }
 
 // Incr increases a key's counter in redis.
 func (rc *Cache) Incr(ctx context.Context, key string) error {
-	_, err := redis.Bool(rc.do("INCRBY", key, 1))
-	return err
+	return rc.client.Incr(ctx, rc.associate(key)).Err()
 }
 
 // Decr decreases a key's counter in redis.
 func (rc *Cache) Decr(ctx context.Context, key string) error {
-	_, err := redis.Bool(rc.do("INCRBY", key, -1))
-	return err
+	return rc.client.Decr(ctx, rc.associate(key)).Err()
 }
 
 // ClearAll deletes all cache in the redis collection
 // Be careful about this method, because it scans all keys and the delete them one by one
-func (rc *Cache) ClearAll(context.Context) error {
-	cachedKeys, err := rc.Scan(rc.key + ":*")
+func (rc *Cache) ClearAll(ctx context.Context) error {
+	cachedKeys, err := rc.Scan(ctx, rc.key+":*")
 	if err != nil {
 		return err
 	}
-	c := rc.p.Get()
-	defer func() {
-		_ = c.Close()
-	}()
-	for _, str := range cachedKeys {
-		if _, err = c.Do("DEL", str); err != nil {
-			return err
-		}
+	if len(cachedKeys) > 0 {
+		return rc.client.Del(ctx, cachedKeys...).Err()
 	}
-	return err
+	return nil
 }
 
 // Scan scans all keys matching a given pattern.
-func (rc *Cache) Scan(pattern string) (keys []string, err error) {
-	c := rc.p.Get()
-	defer func() {
-		_ = c.Close()
-	}()
+func (rc *Cache) Scan(ctx context.Context, pattern string) ([]string, error) {
 	var (
 		cursor uint64 = 0 // start
-		result []interface{}
-		list   []string
+		res    []string
+		ks     []string
+		err    error
 	)
 	for {
-		result, err = redis.Values(c.Do("SCAN", cursor, "MATCH", pattern, "COUNT", 1024))
+		ks, cursor, err = rc.client.Scan(ctx, cursor, pattern, ScanCount).Result()
 		if err != nil {
-			return
+			return nil, err
 		}
-		list, err = redis.Strings(result[1], nil)
-		if err != nil {
-			return
-		}
-		keys = append(keys, list...)
-		cursor, err = redis.Uint64(result[0], nil)
-		if err != nil {
-			return
-		}
+		res = append(res, ks...)
 		if cursor == 0 { // over
-			return
+			return res, nil
 		}
 	}
 }
