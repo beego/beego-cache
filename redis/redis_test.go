@@ -17,12 +17,13 @@ package redis
 import (
 	"context"
 	"errors"
-	"github.com/beego/beego-cache/v2/redis/mock"
+	"testing"
+	"time"
+
+	"github.com/beego/beego-cache/v2/redis/internal/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestCache_Get(t *testing.T) {
@@ -32,9 +33,8 @@ func TestCache_Get(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -96,9 +96,8 @@ func TestCache_GetMulti(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -165,9 +164,8 @@ func TestCache_Put(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -223,9 +221,8 @@ func TestCache_Delete(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -278,9 +275,8 @@ func TestCache_IsExist(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -337,9 +333,8 @@ func TestCache_Incr(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -392,9 +387,8 @@ func TestCache_Decr(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client: mockCmdable,
+		key:    "testKey",
 	}
 
 	ctx := context.Background()
@@ -447,9 +441,9 @@ func TestCache_Scan(t *testing.T) {
 	mockCmdable := mock.NewMockCmdable(ctrl)
 
 	c := &Cache{
-		client:   mockCmdable,
-		conninfo: "localhost:6379",
-		key:      "testKey",
+		client:    mockCmdable,
+		key:       "testKey",
+		scanCount: 2,
 	}
 
 	ctx := context.Background()
@@ -499,7 +493,6 @@ func TestCache_Scan(t *testing.T) {
 	// Iterate through the test cases
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ScanCount = 2
 			// Set the expectation on mockCmdable
 			for i, cmdableReturn := range tc.cmdableReturn {
 				mockCmdable.EXPECT().

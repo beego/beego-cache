@@ -17,8 +17,9 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	cache "github.com/beego/beego-cache/v2"
 )
@@ -26,22 +27,21 @@ import (
 var (
 	// DefaultKey defines the collection name of redis for the cache adapter.
 	DefaultKey = "beecacheRedis"
-	ScanCount  = int64(1 << 10) // aka 1024
 )
 
 // Cache is Redis cache adapter.
 type Cache struct {
-	client   redis.Cmdable // redis client
-	conninfo string
-	key      string
+	client    redis.Cmdable // redis client
+	key       string
+	scanCount int64
 }
 
 type CacheOptions func(c *Cache)
 
-// CacheWithConninfo configures conninfo for redis
-func CacheWithConninfo(conninfo string) CacheOptions {
+// CacheWithScanCount configures scan count for redis
+func CacheWithScanCount(count int64) CacheOptions {
 	return func(c *Cache) {
-		c.conninfo = conninfo
+		c.scanCount = count
 	}
 }
 
@@ -55,8 +55,9 @@ func CacheWithKey(key string) CacheOptions {
 // NewRedisCache creates a new redis cache with default collection name.
 func NewRedisCache(client redis.Cmdable, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
-		client: client,
-		key:    DefaultKey,
+		client:    client,
+		key:       DefaultKey,
+		scanCount: 1024,
 	}
 
 	for _, opt := range opts {
@@ -132,7 +133,7 @@ func (rc *Cache) Scan(ctx context.Context, pattern string) ([]string, error) {
 		err    error
 	)
 	for {
-		ks, cursor, err = rc.client.Scan(ctx, cursor, pattern, ScanCount).Result()
+		ks, cursor, err = rc.client.Scan(ctx, cursor, pattern, rc.scanCount).Result()
 		if err != nil {
 			return nil, err
 		}
