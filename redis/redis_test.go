@@ -34,7 +34,7 @@ func TestCache_Get(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -97,7 +97,7 @@ func TestCache_GetMulti(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -165,7 +165,7 @@ func TestCache_Put(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -222,7 +222,7 @@ func TestCache_Delete(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -276,7 +276,7 @@ func TestCache_IsExist(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -334,7 +334,7 @@ func TestCache_Incr(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -388,7 +388,7 @@ func TestCache_Decr(t *testing.T) {
 
 	c := &Cache{
 		client: mockCmdable,
-		key:    "testKey",
+		prefix: "testKey",
 	}
 
 	ctx := context.Background()
@@ -442,7 +442,7 @@ func TestCache_Scan(t *testing.T) {
 
 	c := &Cache{
 		client:    mockCmdable,
-		key:       "testKey",
+		prefix:    "testKey",
 		scanCount: 2,
 	}
 

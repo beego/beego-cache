@@ -24,15 +24,12 @@ import (
 	cache "github.com/beego/beego-cache/v2"
 )
 
-var (
-	// DefaultKey defines the collection name of redis for the cache adapter.
-	DefaultKey = "beecacheRedis"
-)
+const defaultPrefix = "beecacheRedis"
 
 // Cache is Redis cache adapter.
 type Cache struct {
 	client    redis.Cmdable // redis client
-	key       string
+	prefix    string
 	scanCount int64
 }
 
@@ -45,10 +42,14 @@ func CacheWithScanCount(count int64) CacheOptions {
 	}
 }
 
-// CacheWithKey configures key for redis
-func CacheWithKey(key string) CacheOptions {
+// CacheWithPrefix configures prefix for redis
+// prefix should not be empty string
+func CacheWithPrefix(key string) CacheOptions {
+	if key == "" {
+		panic("prefix should not be empty")
+	}
 	return func(c *Cache) {
-		c.key = key
+		c.prefix = key
 	}
 }
 
@@ -56,7 +57,7 @@ func CacheWithKey(key string) CacheOptions {
 func NewRedisCache(client redis.Cmdable, opts ...CacheOptions) cache.Cache {
 	res := &Cache{
 		client:    client,
-		key:       DefaultKey,
+		prefix:    defaultPrefix,
 		scanCount: 1024,
 	}
 
@@ -66,9 +67,9 @@ func NewRedisCache(client redis.Cmdable, opts ...CacheOptions) cache.Cache {
 	return res
 }
 
-// associate with config key.
+// associate with config prefix.
 func (rc *Cache) associate(originKey interface{}) string {
-	return fmt.Sprintf("%s:%s", rc.key, originKey)
+	return fmt.Sprintf("%s:%s", rc.prefix, originKey)
 }
 
 // Get cache from redis.
@@ -90,7 +91,7 @@ func (rc *Cache) Put(ctx context.Context, key string, val interface{}, timeout t
 	return rc.client.Set(ctx, rc.associate(key), val, timeout).Err()
 }
 
-// Delete deletes a key's cache in redis.
+// Delete deletes a prefix's cache in redis.
 func (rc *Cache) Delete(ctx context.Context, key string) error {
 	return rc.client.Del(ctx, rc.associate(key)).Err()
 }
@@ -101,20 +102,22 @@ func (rc *Cache) IsExist(ctx context.Context, key string) (bool, error) {
 	return count != 0, err
 }
 
-// Incr increases a key's counter in redis.
+// Incr increases a prefix's counter in redis.
 func (rc *Cache) Incr(ctx context.Context, key string) error {
 	return rc.client.Incr(ctx, rc.associate(key)).Err()
 }
 
-// Decr decreases a key's counter in redis.
+// Decr decreases a prefix's counter in redis.
 func (rc *Cache) Decr(ctx context.Context, key string) error {
 	return rc.client.Decr(ctx, rc.associate(key)).Err()
 }
 
 // ClearAll deletes all cache in the redis collection
 // Be careful about this method, because it scans all keys and the delete them one by one
+// if you add more prefix-value during calling ClearAll function,
+// those new prefix-value pairs will not be deleted.
 func (rc *Cache) ClearAll(ctx context.Context) error {
-	cachedKeys, err := rc.Scan(ctx, rc.key+":*")
+	cachedKeys, err := rc.Scan(ctx, rc.prefix+":*")
 	if err != nil {
 		return err
 	}
@@ -125,6 +128,7 @@ func (rc *Cache) ClearAll(ctx context.Context) error {
 }
 
 // Scan scans all keys matching a given pattern.
+// this function will ignore the prefix.
 func (rc *Cache) Scan(ctx context.Context, pattern string) ([]string, error) {
 	var (
 		cursor uint64 = 0 // start
