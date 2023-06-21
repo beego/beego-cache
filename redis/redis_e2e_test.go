@@ -82,9 +82,9 @@ func (s *RedisCompositionTestSuite) TestRedisCacheGet() {
 	}{
 		//{
 		//	name: "get return err",
-		//	key:  "key0",
+		//	prefix:  "key0",
 		//	wantErr: func() error {
-		//		err := errors.New("the key not exist")
+		//		err := errors.New("the prefix not exist")
 		//		return berror.Wrapf(err, cache.RedisCacheCurdFailed,
 		//			"could not execute this command: %s", "GET")
 		//	}(),
@@ -183,17 +183,6 @@ func (s *RedisCompositionTestSuite) TestRedisCacheGetMulti() {
 		timeoutDuration time.Duration
 		wantErr         error
 	}{
-		//{
-		//	name:   "get multi return err",
-		//	keys:   []string{"key0", "key1"},
-		//	values: []string{"", ""},
-		//	wantErr: func() error {
-		//		err := errors.New("the key not exist")
-		//		return berror.Wrapf(err, cache.RedisCacheCurdFailed,
-		//			"could not execute this command: %s", "GET")
-		//	}(),
-		//	timeoutDuration: 1 * time.Second,
-		//},
 		{
 			name:            "get multi val",
 			keys:            []string{"key2", "key3"},
@@ -234,7 +223,7 @@ func (s *RedisCompositionTestSuite) TestRedisCacheIncrAndDecr() {
 	}{
 		{
 			name:            "incr and decr",
-			key:             "key",
+			key:             "prefix",
 			value:           1,
 			timeoutDuration: 5 * time.Second,
 		},
@@ -273,7 +262,7 @@ func (s *RedisCompositionTestSuite) TestCacheScan() {
 	}
 	time.Sleep(time.Second)
 	// scan all for the first time
-	keys, err := s.cache.(*Cache).Scan(context.Background(), DefaultKey+":*")
+	keys, err := s.cache.(*Cache).Scan(context.Background(), defaultPrefix+":*")
 	assert.Nil(t, err)
 
 	assert.Equal(t, 100, len(keys), "scan all error")
@@ -282,7 +271,7 @@ func (s *RedisCompositionTestSuite) TestCacheScan() {
 	assert.Nil(t, s.cache.ClearAll(context.Background()))
 
 	// scan all for the second time
-	keys, err = s.cache.(*Cache).Scan(context.Background(), DefaultKey+":*")
+	keys, err = s.cache.(*Cache).Scan(context.Background(), defaultPrefix+":*")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(keys))
 }
