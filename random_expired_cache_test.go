@@ -156,10 +156,10 @@ func TestRandomExpireCacheGetMulti(t *testing.T) {
 	testMemoryCacheGetMulti(t, cache)
 }
 
-func TestWithOffsetFunc(t *testing.T) {
+func TestWithRandomExpireCacheOffsetFunc(t *testing.T) {
 	bm := NewMemoryCache(20)
 	magic := -time.Duration(rand.Int())
-	cache := NewRandomExpireCache(bm, WithOffsetFunc(func() time.Duration {
+	cache := NewRandomExpireCache(bm, WithRandomExpireCacheOffsetFunc(func() time.Duration {
 		return magic
 	}))
 	// offset should return the magic value
