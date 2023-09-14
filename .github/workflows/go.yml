@@ -34,4 +34,4 @@ jobs:
         run: sh ./script/integrate_test.sh
 
       - name: Post Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
