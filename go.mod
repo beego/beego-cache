@@ -7,7 +7,7 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.5.0
 	github.com/bradfitz/gomemcache v0.0.0-20221031212613-62deef7fc822
 	github.com/golang/mock v1.6.0
-	github.com/redis/go-redis/v9 v9.0.5
+	github.com/redis/go-redis/v9 v9.4.0
 	github.com/ssdb/gossdb v0.0.0-20180723034631-88f6b59b84ec
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sync v0.3.0
